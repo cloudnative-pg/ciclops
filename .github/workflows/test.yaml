@@ -1,0 +1,19 @@
+on: [push]
+
+jobs:
+  custom_test:
+    runs-on: ubuntu-latest
+    name: Test action with act
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Generate Test Summary
+        uses: ./
+        with:
+          artifact_directory: example-artifacts/
+          output_file: test-summary.md
+        # NOTE: it does not seem possible to pass $GITHUB_STEP_SUMMARY as a
+        # regular file to the underlying script. Hence, we create a file and
+        # in a later step write with >> $GITHUB_STEP_SUMMARY
+      - name: Create GitHub Job Summary from report
+        run: cat test-summary.md >> $GITHUB_STEP_SUMMARY

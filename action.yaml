@@ -1,0 +1,24 @@
+name: "Test Summary"
+author: "The Cloud Native Team at EDB"
+description: >
+  displays a series of tables summarizing test results, in Markdown
+  format. Either to a specified `output_file`, or to standard out.
+  This markdown can be redirected to the $GITHUB_STEP_SUMMARY variable
+  to produce a Job Summary.
+  See https://github.blog/2022-05-09-supercharging-github-actions-with-job-summaries/
+inputs:
+  artifact_directory:
+    description: "directory where the JSON artifacts are stored"
+    required: true
+    default: "test-artifacts"
+  output_file:
+    description: "file where the markdown report should be written"
+    required: false
+runs:
+  using: "docker"
+  image: "Dockerfile"
+  args:
+    - "--dir"
+    - "./${{ inputs.artifact_directory }}"
+    - "--out"
+    - "${{ inputs.output_file }}"
