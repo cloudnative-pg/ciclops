@@ -383,7 +383,6 @@ def format_by_test(summary, structure, file_out=None):
     print(f"\n<h2><a name={anchor}>{title}</a></h2>\n", file=file_out)
 
     table = PrettyTable(align="l")
-    print("header", structure["header"])
     table.field_names = structure["header"]
     table.set_style(MARKDOWN)
 
