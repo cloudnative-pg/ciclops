@@ -70,16 +70,15 @@ def is_failed(e2e_test):
         and e2e_test["state"] != "ignoreFailed"
     )
 
+
 def is_external_failure(e2e_test):
     """checks if the test failed for an external reason. E.g. because the
     whole suite timed out, or the user canceled execution.
     For example, in ginkgo, the status "interrupted" is used when the suite
     times out
     """
-    return (
-        is_failed(e2e_test)
-        and e2e_test["state"] != "failed"
-    )
+    return is_failed(e2e_test) and e2e_test["state"] != "failed"
+
 
 def is_special_error(e2e_test):
     """checks if the test failed due to one of a set of well-known errors
@@ -89,10 +88,32 @@ def is_special_error(e2e_test):
         "operator was restarted": True,
         "operator was renamed": True,
     }
-    return (
-        "error" in e2e_test
-        and e2e_test["error"] in special_failures
-    )
+    return "error" in e2e_test and e2e_test["error"] in special_failures
+
+
+def is_test_artifact(test_entry):
+    should_have = [
+        "name",
+        "state",
+        "start_time",
+        "end_time",
+        "error",
+        "error_file",
+        "error_line",
+        "platform",
+        "postgres_kind",
+        "matrix_id",
+        "postgres_version",
+        "k8s_version",
+        "workflow_id",
+        "repo",
+        "branch",
+    ]
+    for field in should_have:
+        if field not in test_entry:
+            return False
+    return True
+
 
 def combine_postgres_data(test_entry):
     """combines Postgres kind and version of the test artifact to
@@ -175,11 +196,15 @@ def count_bucketed_by_test(test_results, by_test):
             by_test["k8s_versions_failed"][name] = {}
         if name not in by_test["pg_versions_failed"]:
             by_test["pg_versions_failed"][name] = {}
+        if name not in by_test["platforms_failed"]:
+            by_test["platforms_failed"][name] = {}
         by_test["failed"][name] = 1 + by_test["failed"][name]
         k8s_version = test_results["k8s_version"]
         pg_version = test_results["pg_version"]
+        platform = test_results["platform"]
         by_test["k8s_versions_failed"][name][k8s_version] = True
         by_test["pg_versions_failed"][name][pg_version] = True
+        by_test["platforms_failed"][name][platform] = True
 
 
 def count_bucketized_stats(test_results, buckets, field_id):
@@ -235,6 +260,7 @@ def compute_test_summary(test_dir):
         "failed": {},
         "k8s_versions_failed": {},
         "pg_versions_failed": {},
+        "platforms_failed": {},
     }
     by_matrix = {"total": {}, "failed": {}}
     by_k8s = {"total": {}, "failed": {}}
@@ -249,7 +275,11 @@ def compute_test_summary(test_dir):
             continue
         path = os.path.join(test_dir, file)
         with open(path, encoding="utf-8") as json_file:
-            test_results = combine_postgres_data(json.load(json_file))
+            parsed = json.load(json_file)
+            if not is_test_artifact(parsed):
+                # skipping non-artifacts
+                continue
+            test_results = combine_postgres_data(parsed)
 
             total_runs = 1 + total_runs
             if is_failed(test_results):
@@ -288,15 +318,9 @@ def compile_overview(summary):
     """computes the failed vs total count for different buckets"""
     unique_failed, unique_run = compute_bucketized_summary(summary["by_test"])
     k8s_failed, k8s_run = compute_bucketized_summary(summary["by_k8s"])
-    postgres_failed, postgres_run = compute_bucketized_summary(
-        summary["by_postgres"]
-    )
-    matrix_failed, matrix_run = compute_bucketized_summary(
-        summary["by_matrix"]
-    )
-    platform_failed, platform_run = compute_bucketized_summary(
-        summary["by_platform"]
-    )
+    postgres_failed, postgres_run = compute_bucketized_summary(summary["by_postgres"])
+    matrix_failed, matrix_run = compute_bucketized_summary(summary["by_matrix"])
+    platform_failed, platform_run = compute_bucketized_summary(summary["by_platform"])
     return {
         "total_run": summary["total_run"],
         "total_failed": summary["total_failed"],
@@ -343,15 +367,11 @@ def format_bucket_table(buckets, structure, file_out=None):
     table.set_style(MARKDOWN)
 
     sorted_by_fail = dict(
-        sorted(
-            buckets["failed"].items(), key=lambda item: item[1], reverse=True
-        )
+        sorted(buckets["failed"].items(), key=lambda item: item[1], reverse=True)
     )
 
     for bucket in sorted_by_fail:
-        table.add_row(
-            [buckets["failed"][bucket], buckets["total"][bucket], bucket]
-        )
+        table.add_row([buckets["failed"][bucket], buckets["total"][bucket], bucket])
 
     print(table, file=file_out)
 
@@ -375,11 +395,10 @@ def format_by_test(summary, structure, file_out=None):
     )
 
     for bucket in sorted_by_fail:
-        failed_k8s = ", ".join(
-            summary["by_test"]["k8s_versions_failed"][bucket].keys()
-        )
-        failed_pg = ", ".join(
-            summary["by_test"]["pg_versions_failed"][bucket].keys()
+        failed_k8s = ", ".join(summary["by_test"]["k8s_versions_failed"][bucket].keys())
+        failed_pg = ", ".join(summary["by_test"]["pg_versions_failed"][bucket].keys())
+        failed_platforms = ", ".join(
+            summary["by_test"]["platforms_failed"][bucket].keys()
         )
         table.add_row(
             [
@@ -387,6 +406,7 @@ def format_by_test(summary, structure, file_out=None):
                 summary["by_test"]["total"][bucket],
                 failed_k8s,
                 failed_pg,
+                failed_platforms,
                 bucket,
             ]
         )
@@ -395,7 +415,7 @@ def format_by_test(summary, structure, file_out=None):
 
 
 def format_duration(duration):
-    "pretty-print duration"
+    """pretty-print duration"""
     minutes = duration.seconds // 60
     seconds = duration.seconds % 60
     return f"{minutes} min {seconds} sec"
@@ -412,9 +432,7 @@ def format_durations_table(test_times, structure, file_out=None):
     table.field_names = structure["header"]
 
     sorted_by_longest = dict(
-        sorted(
-            test_times["max"].items(), key=lambda item: item[1], reverse=True
-        )
+        sorted(test_times["max"].items(), key=lambda item: item[1], reverse=True)
     )
 
     for bucket in sorted_by_longest:
@@ -437,6 +455,7 @@ def format_test_failures(summary, file_out=None):
             "total runs",
             "failed K8s",
             "failed PG",
+            "failed Platforms",
             "test",
         ],
     }
@@ -484,7 +503,8 @@ def format_test_summary(summary, file_out=None):
 
     print(
         "Note that there are several tables below: overview, bucketed "
-        + "by several parameters, timings.", file=file_out
+        + "by several parameters, timings.",
+        file=file_out,
     )
     print(file=file_out)
     if summary["total_failed"] != 0:
@@ -494,7 +514,8 @@ def format_test_summary(summary, file_out=None):
             + "[by matrix](#user-content-by_matrix) | "
             + "[by k8s](#user-content-by_k8s) | "
             + "[by postgres](#user-content-by_postgres) | "
-            + "[by platform](#user-content-by_platform)", file=file_out
+            + "[by platform](#user-content-by_platform)",
+            file=file_out,
         )
         print(file=file_out)
 
@@ -518,8 +539,8 @@ def format_test_summary(summary, file_out=None):
     if summary["total_failed"] == 0:
         print(file=file_out)
         print(
-            "No failures, no failure stats shown. "
-            "It's not easy being green.", file=file_out
+            "No failures, no failure stats shown. " "It's not easy being green.",
+            file=file_out,
         )
         print(file=file_out)
     else:
@@ -541,9 +562,7 @@ def format_test_summary(summary, file_out=None):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(
-        description="Summarize the E2E Suite results"
-    )
+    parser = argparse.ArgumentParser(description="Summarize the E2E Suite results")
     parser.add_argument(
         "-d",
         "--dir",
@@ -560,7 +579,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     test_summary = compute_test_summary(args.dir)
-    if (args.out):
+    if args.out:
         with open(args.out, "w") as f:
             format_test_summary(test_summary, file_out=f)
     else:
