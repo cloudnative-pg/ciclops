@@ -109,8 +109,8 @@ def is_test_artifact(test_entry):
         "repo",
         "branch",
     ]
-    for kw in should_have:
-        if kw not in test_entry:
+    for field in should_have:
+        if field not in test_entry:
             return False
     return True
 
@@ -415,7 +415,7 @@ def format_by_test(summary, structure, file_out=None):
 
 
 def format_duration(duration):
-    "pretty-print duration"
+    """pretty-print duration"""
     minutes = duration.seconds // 60
     seconds = duration.seconds % 60
     return f"{minutes} min {seconds} sec"
