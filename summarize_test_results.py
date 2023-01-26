@@ -206,6 +206,36 @@ def count_bucketed_by_test(test_results, by_test):
         by_test["pg_versions_failed"][name][pg_version] = True
         by_test["platforms_failed"][name][platform] = True
 
+def count_bucketed_by_code(test_results, by_failing_code):
+    """buckets by failed code, with a list of tests where the assertion fails,
+    and a view of the stack trace.
+    """
+    name = test_results["name"]
+    if test_results["error"] == "":
+        return
+    
+    errfile = test_results["error_file"]
+    errline = test_results["error_line"]
+    err_desc = f"{errfile}:{errline}"
+
+    # tag abnormal failures, e.g.: "[operator was restarted]  Imports with …"
+    if is_external_failure(test_results):
+        tag = test_results["state"]
+        name = f"[{tag}] {name}"
+    elif is_special_error(test_results):
+        tag = test_results["error"]
+        name = f"[{tag}] {name}"
+
+    if err_desc not in by_failing_code["total"]:
+        by_failing_code["total"][err_desc] = 0
+    by_failing_code["total"][err_desc] = 1 + by_failing_code["total"][err_desc]
+
+    if err_desc not in by_failing_code["tests"]:
+        by_failing_code["tests"][err_desc] = {}
+    by_failing_code["tests"][err_desc][name] = True
+
+    if err_desc not in by_failing_code["errors"]:
+        by_failing_code["errors"][err_desc] = test_results["error"]
 
 def count_bucketized_stats(test_results, buckets, field_id):
     """counts the success/failures onto a bucket. This means there are two
@@ -246,6 +276,7 @@ def compute_test_summary(test_dir):
         "total_run": 0,
         "total_failed": 0,
         "by_test": { … },
+        "by_code": { … },
         "by_matrix": { … },
         "by_k8s": { … },
         "by_platform": { … },
@@ -261,6 +292,11 @@ def compute_test_summary(test_dir):
         "k8s_versions_failed": {},
         "pg_versions_failed": {},
         "platforms_failed": {},
+    }
+    by_failing_code = {
+        "total": {},
+        "tests": {},
+        "errors": {},
     }
     by_matrix = {"total": {}, "failed": {}}
     by_k8s = {"total": {}, "failed": {}}
@@ -288,6 +324,9 @@ def compute_test_summary(test_dir):
             # bucketing by test name
             count_bucketed_by_test(test_results, by_test)
 
+            # bucketing by failing code
+            count_bucketed_by_code(test_results, by_failing_code)
+
             # bucketing by matrix ID
             count_bucketized_stats(test_results, by_matrix, "matrix_id")
 
@@ -306,6 +345,7 @@ def compute_test_summary(test_dir):
         "total_run": total_runs,
         "total_failed": total_fails,
         "by_test": by_test,
+        "by_code": by_failing_code,
         "by_matrix": by_matrix,
         "by_k8s": by_k8s,
         "by_platform": by_platform,
@@ -413,6 +453,39 @@ def format_by_test(summary, structure, file_out=None):
 
     print(table, file=file_out)
 
+def format_by_code(summary, structure, file_out=None):
+    """print metrics bucketed by failing code"""
+    title = structure["title"]
+    anchor = structure["anchor"]
+    print(f"\n<h2><a name={anchor}>{title}</a></h2>\n", file=file_out)
+
+    table = PrettyTable(align="l")
+    table.field_names = structure["header"]
+    table.set_style(MARKDOWN)
+
+    sorted_by_code = dict(
+        sorted(
+            summary["by_code"]["total"].items(),
+            key=lambda item: item[1],
+            reverse=True,
+        )
+    )
+
+    for bucket in sorted_by_code:
+        tests = ", ".join(summary["by_code"]["tests"][bucket].keys())
+        # replace newlines and pipes to avoid interference with markdown tables
+        errors = summary["by_code"]["errors"][bucket].replace("\n", "<br />").replace("|", "—")
+        err_cell = f"<details><summary>Click to expand</summary><span>{errors}</span></details>"
+        table.add_row(
+            [
+                summary["by_code"]["total"][bucket],
+                bucket,
+                tests,
+                err_cell,
+            ]
+        )
+
+    print(table, file=file_out)
 
 def format_duration(duration):
     """pretty-print duration"""
@@ -461,6 +534,18 @@ def format_test_failures(summary, file_out=None):
     }
 
     format_by_test(summary, by_test_section, file_out=file_out)
+
+    by_code_section = {
+        "title": "Failures by errored code",
+        "anchor": "by_code",
+        "header": [
+            "total failures",
+            "failing at",
+            "in tests",
+            "error message",
+        ],
+    }
+    format_by_code(summary, by_code_section, file_out=file_out)
 
     by_matrix_section = {
         "title": "Failures by matrix branch",
