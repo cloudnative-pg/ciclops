@@ -184,7 +184,7 @@ def track_time_taken(test_results, test_times, suite_times):
         suite_times["end_time"][platform] = {}
     if matrix_id not in suite_times["end_time"][platform]:
         suite_times["end_time"][platform][matrix_id] = end_time
-    
+
     if start_time < suite_times["start_time"][platform][matrix_id]:
         suite_times["start_time"][platform][matrix_id] = start_time
     if suite_times["end_time"][platform][matrix_id] < end_time:
@@ -230,7 +230,7 @@ def count_bucketed_by_code(test_results, by_failing_code):
     name = test_results["name"]
     if test_results["error"] == "":
         return
-    
+
     errfile = test_results["error_file"]
     errline = test_results["error_line"]
     err_desc = f"{errfile}:{errline}"
@@ -564,13 +564,13 @@ def format_suite_durations_table(suite_times, structure, file_out=None):
                 suite_durations["min"][platform] = duration
             if platform not in suite_durations["slowest_branch"]:
                 suite_durations["slowest_branch"][platform] = matrix_id
-            
+
             if suite_durations["max"][platform] < duration:
                 suite_durations["max"][platform] = duration
                 suite_durations["slowest_branch"][platform] = matrix_id
             if duration < suite_durations["min"][platform]:
                 suite_durations["min"][platform] = duration
-            
+
     sorted_by_longest = dict(
         sorted(suite_durations["max"].items(), key=lambda item: item[1], reverse=True)
     )
