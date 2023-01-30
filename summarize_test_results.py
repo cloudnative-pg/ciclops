@@ -126,7 +126,7 @@ def combine_postgres_data(test_entry):
     return test_entry
 
 
-def track_time_taken(test_results, test_times):
+def track_time_taken(test_results, test_times, suite_times):
     """computes the running shortest and longest duration of
     running each kind of test
     """
@@ -155,6 +155,7 @@ def track_time_taken(test_results, test_times):
     if len(end_frags) != 2:
         return
 
+    # track individual test durations. Store min-max, slowest branch
     start_time = datetime.fromisoformat(start_frags[0])
     end_time = datetime.fromisoformat(end_frags[0])
     duration = end_time - start_time
@@ -172,6 +173,22 @@ def track_time_taken(test_results, test_times):
     if duration < test_times["min"][name]:
         test_times["min"][name] = duration
 
+    # track suite time.
+    # For each platform-matrix branch, track the earliest start and the latest end
+    platform = test_results["platform"]
+    if platform not in suite_times["start_time"]:
+        suite_times["start_time"][platform] = {}
+    if matrix_id not in suite_times["start_time"][platform]:
+        suite_times["start_time"][platform][matrix_id] = start_time
+    if platform not in suite_times["end_time"]:
+        suite_times["end_time"][platform] = {}
+    if matrix_id not in suite_times["end_time"][platform]:
+        suite_times["end_time"][platform][matrix_id] = end_time
+
+    if start_time < suite_times["start_time"][platform][matrix_id]:
+        suite_times["start_time"][platform][matrix_id] = start_time
+    if suite_times["end_time"][platform][matrix_id] < end_time:
+        suite_times["end_time"][platform][matrix_id] = end_time
 
 def count_bucketed_by_test(test_results, by_test):
     """counts the successes, failures, failing versions of kubernetes,
@@ -206,6 +223,36 @@ def count_bucketed_by_test(test_results, by_test):
         by_test["pg_versions_failed"][name][pg_version] = True
         by_test["platforms_failed"][name][platform] = True
 
+def count_bucketed_by_code(test_results, by_failing_code):
+    """buckets by failed code, with a list of tests where the assertion fails,
+    and a view of the stack trace.
+    """
+    name = test_results["name"]
+    if test_results["error"] == "":
+        return
+
+    errfile = test_results["error_file"]
+    errline = test_results["error_line"]
+    err_desc = f"{errfile}:{errline}"
+
+    # tag abnormal failures, e.g.: "[operator was restarted]  Imports with …"
+    if is_external_failure(test_results):
+        tag = test_results["state"]
+        name = f"[{tag}] {name}"
+    elif is_special_error(test_results):
+        tag = test_results["error"]
+        name = f"[{tag}] {name}"
+
+    if err_desc not in by_failing_code["total"]:
+        by_failing_code["total"][err_desc] = 0
+    by_failing_code["total"][err_desc] = 1 + by_failing_code["total"][err_desc]
+
+    if err_desc not in by_failing_code["tests"]:
+        by_failing_code["tests"][err_desc] = {}
+    by_failing_code["tests"][err_desc][name] = True
+
+    if err_desc not in by_failing_code["errors"]:
+        by_failing_code["errors"][err_desc] = test_results["error"]
 
 def count_bucketized_stats(test_results, buckets, field_id):
     """counts the success/failures onto a bucket. This means there are two
@@ -246,11 +293,13 @@ def compute_test_summary(test_dir):
         "total_run": 0,
         "total_failed": 0,
         "by_test": { … },
+        "by_code": { … },
         "by_matrix": { … },
         "by_k8s": { … },
         "by_platform": { … },
         "by_postgres": { … },
         "test_durations": { … },
+        "suite_durations": { … },
     }
     """
     total_runs = 0
@@ -262,12 +311,18 @@ def compute_test_summary(test_dir):
         "pg_versions_failed": {},
         "platforms_failed": {},
     }
+    by_failing_code = {
+        "total": {},
+        "tests": {},
+        "errors": {},
+    }
     by_matrix = {"total": {}, "failed": {}}
     by_k8s = {"total": {}, "failed": {}}
     by_postgres = {"total": {}, "failed": {}}
     by_platform = {"total": {}, "failed": {}}
 
     test_durations = {"max": {}, "min": {}, "slowest_branch": {}}
+    suite_durations = {"start_time": {}, "end_time": {}}
 
     dir_listing = os.listdir(test_dir)
     for file in dir_listing:
@@ -288,6 +343,9 @@ def compute_test_summary(test_dir):
             # bucketing by test name
             count_bucketed_by_test(test_results, by_test)
 
+            # bucketing by failing code
+            count_bucketed_by_code(test_results, by_failing_code)
+
             # bucketing by matrix ID
             count_bucketized_stats(test_results, by_matrix, "matrix_id")
 
@@ -300,17 +358,19 @@ def compute_test_summary(test_dir):
             # bucketing by platform
             count_bucketized_stats(test_results, by_platform, "platform")
 
-            track_time_taken(test_results, test_durations)
+            track_time_taken(test_results, test_durations, suite_durations)
 
     return {
         "total_run": total_runs,
         "total_failed": total_fails,
         "by_test": by_test,
+        "by_code": by_failing_code,
         "by_matrix": by_matrix,
         "by_k8s": by_k8s,
         "by_platform": by_platform,
         "by_postgres": by_postgres,
         "test_durations": test_durations,
+        "suite_durations": suite_durations,
     }
 
 
@@ -413,6 +473,39 @@ def format_by_test(summary, structure, file_out=None):
 
     print(table, file=file_out)
 
+def format_by_code(summary, structure, file_out=None):
+    """print metrics bucketed by failing code"""
+    title = structure["title"]
+    anchor = structure["anchor"]
+    print(f"\n<h2><a name={anchor}>{title}</a></h2>\n", file=file_out)
+
+    table = PrettyTable(align="l")
+    table.field_names = structure["header"]
+    table.set_style(MARKDOWN)
+
+    sorted_by_code = dict(
+        sorted(
+            summary["by_code"]["total"].items(),
+            key=lambda item: item[1],
+            reverse=True,
+        )
+    )
+
+    for bucket in sorted_by_code:
+        tests = ", ".join(summary["by_code"]["tests"][bucket].keys())
+        # replace newlines and pipes to avoid interference with markdown tables
+        errors = summary["by_code"]["errors"][bucket].replace("\n", "<br />").replace("|", "—")
+        err_cell = f"<details><summary>Click to expand</summary><span>{errors}</span></details>"
+        table.add_row(
+            [
+                summary["by_code"]["total"][bucket],
+                bucket,
+                tests,
+                err_cell,
+            ]
+        )
+
+    print(table, file=file_out)
 
 def format_duration(duration):
     """pretty-print duration"""
@@ -444,6 +537,52 @@ def format_durations_table(test_times, structure, file_out=None):
 
     print(table, file=file_out)
 
+def format_suite_durations_table(suite_times, structure, file_out=None):
+    """print the table of durations for the whole suite, per platform"""
+    title = structure["title"]
+    anchor = structure["anchor"]
+    print(f"\n<h2><a name={anchor}>{title}</a></h2>\n", file=file_out)
+
+    table = PrettyTable(align="l", max_width=80)
+    table.set_style(MARKDOWN)
+    table.field_names = structure["header"]
+
+    # we want to display a table with one row per platform, giving us the
+    # shortest duration and longest duration of the suite, and the slowest branch
+    # The dictionaries in `suite_durations` are keyed by platform
+    suite_durations = {
+        "min": {},
+        "max": {},
+        "slowest_branch": {},
+    }
+    for platform in suite_times["start_time"]:
+        for matrix_id in suite_times["start_time"][platform]:
+            duration = suite_times["end_time"][platform][matrix_id] - suite_times["start_time"][platform][matrix_id]
+            if platform not in suite_durations["max"]:
+                suite_durations["max"][platform] = duration
+            if platform not in suite_durations["min"]:
+                suite_durations["min"][platform] = duration
+            if platform not in suite_durations["slowest_branch"]:
+                suite_durations["slowest_branch"][platform] = matrix_id
+
+            if suite_durations["max"][platform] < duration:
+                suite_durations["max"][platform] = duration
+                suite_durations["slowest_branch"][platform] = matrix_id
+            if duration < suite_durations["min"][platform]:
+                suite_durations["min"][platform] = duration
+
+    sorted_by_longest = dict(
+        sorted(suite_durations["max"].items(), key=lambda item: item[1], reverse=True)
+    )
+
+    for bucket in sorted_by_longest:
+        name = bucket
+        longest = format_duration(suite_durations["max"][bucket])
+        shortest = format_duration(suite_durations["min"][bucket])
+        branch = suite_durations["slowest_branch"][bucket]
+        table.add_row([longest, shortest, branch, name])
+
+    print(table, file=file_out)
 
 def format_test_failures(summary, file_out=None):
     """creates the part of the test report that drills into the failures"""
@@ -461,6 +600,18 @@ def format_test_failures(summary, file_out=None):
     }
 
     format_by_test(summary, by_test_section, file_out=file_out)
+
+    by_code_section = {
+        "title": "Failures by errored code",
+        "anchor": "by_code",
+        "header": [
+            "total failures",
+            "failing code location",
+            "in tests",
+            "error message",
+        ],
+    }
+    format_by_code(summary, by_code_section, file_out=file_out)
 
     by_matrix_section = {
         "title": "Failures by matrix branch",
@@ -510,7 +661,9 @@ def format_test_summary(summary, file_out=None):
     if summary["total_failed"] != 0:
         print(
             "**Index**: [timing table](#user-content-timing) | "
+            + "[suite timing table](#user-content-suite_timing) | "
             + "[by test](#user-content-by_test) | "
+            + "[by failing code](#user-content-by_code) | "
             + "[by matrix](#user-content-by_matrix) | "
             + "[by k8s](#user-content-by_k8s) | "
             + "[by postgres](#user-content-by_postgres) | "
@@ -545,6 +698,19 @@ def format_test_summary(summary, file_out=None):
         print(file=file_out)
     else:
         format_test_failures(summary, file_out=file_out)
+
+    suite_timing_section = {
+        "title": "Suite times",
+        "anchor": "suite_timing",
+        "header": [
+            "longest taken",
+            "shortest taken",
+            "slowest branch",
+            "platform",
+        ],
+    }
+
+    format_suite_durations_table(summary["suite_durations"], suite_timing_section, file_out=file_out)
 
     timing_section = {
         "title": "Test times",
