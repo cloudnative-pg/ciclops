@@ -190,6 +190,7 @@ def track_time_taken(test_results, test_times, suite_times):
     if suite_times["end_time"][platform][matrix_id] < end_time:
         suite_times["end_time"][platform][matrix_id] = end_time
 
+
 def count_bucketed_by_test(test_results, by_test):
     """counts the successes, failures, failing versions of kubernetes,
     failing versions of postgres, bucketed by test name.
@@ -223,12 +224,13 @@ def count_bucketed_by_test(test_results, by_test):
         by_test["pg_versions_failed"][name][pg_version] = True
         by_test["platforms_failed"][name][platform] = True
 
+
 def count_bucketed_by_code(test_results, by_failing_code):
     """buckets by failed code, with a list of tests where the assertion fails,
     and a view of the stack trace.
     """
     name = test_results["name"]
-    if test_results["error"] == "":
+    if test_results["error"] == "" or test_results["state"] == "ignoreFailed":
         return
 
     errfile = test_results["error_file"]
@@ -253,6 +255,7 @@ def count_bucketed_by_code(test_results, by_failing_code):
 
     if err_desc not in by_failing_code["errors"]:
         by_failing_code["errors"][err_desc] = test_results["error"]
+
 
 def count_bucketized_stats(test_results, buckets, field_id):
     """counts the success/failures onto a bucket. This means there are two
@@ -397,6 +400,55 @@ def compile_overview(summary):
     }
 
 
+def format_alerts(summary, file_out=None):
+    """print Alerts for tests that have failed systematically
+
+    We want to capture:
+    - all test combinations failed (if this happens, no more investigation needed)
+    - a test failed systematically (all combinations of this test failed)
+    - a PG version failed systematically (all tests in that PG version failed)
+    - a K8s version failed systematically (all tests in that K8s version failed)
+    - a Platform failed systematically (all tests in that Platform failed)
+
+    We require more than 1 "failure" to avoid flooding
+    """
+    has_systematic_failures = False
+
+    if summary["total_run"] == summary["total_failed"]:
+        print(f"All test combinations failed\n", file=file_out)
+        return True
+
+    metric_name = {
+        "by_test": "Tests",
+        "by_k8s": "Kubernetes versions",
+        "by_postgres": "Postgres versions",
+        "by_platform": "Platforms",
+    }
+
+    for metric in ["by_test", "by_k8s", "by_postgres", "by_platform"]:
+        has_total_failure = False
+        for bucket_hits in summary[metric]["failed"].items():
+            bucket = bucket_hits[0]  # the items() call retuns pairs (bucket, hits)
+            failures = summary[metric]["failed"][bucket]
+            runs = summary[metric]["total"][bucket]
+            if failures == runs and failures > 1:
+                if not has_total_failure:
+                    print(
+                        f"{metric_name[metric]} with systematic failures:",
+                        file=file_out,
+                    )
+                    has_total_failure = True
+                print(
+                    f"- {bucket}: ({failures} out of {runs} tests failed)",
+                    file=file_out,
+                )
+                has_systematic_failures = True
+        if has_total_failure:
+            print(file=file_out)
+
+    return has_systematic_failures
+
+
 def format_overview(summary, structure, file_out=None):
     """print general test metrics"""
     print("## " + structure["title"] + "\n", file=file_out)
@@ -473,6 +525,7 @@ def format_by_test(summary, structure, file_out=None):
 
     print(table, file=file_out)
 
+
 def format_by_code(summary, structure, file_out=None):
     """print metrics bucketed by failing code"""
     title = structure["title"]
@@ -494,7 +547,11 @@ def format_by_code(summary, structure, file_out=None):
     for bucket in sorted_by_code:
         tests = ", ".join(summary["by_code"]["tests"][bucket].keys())
         # replace newlines and pipes to avoid interference with markdown tables
-        errors = summary["by_code"]["errors"][bucket].replace("\n", "<br />").replace("|", "—")
+        errors = (
+            summary["by_code"]["errors"][bucket]
+            .replace("\n", "<br />")
+            .replace("|", "—")
+        )
         err_cell = f"<details><summary>Click to expand</summary><span>{errors}</span></details>"
         table.add_row(
             [
@@ -506,6 +563,7 @@ def format_by_code(summary, structure, file_out=None):
         )
 
     print(table, file=file_out)
+
 
 def format_duration(duration):
     """pretty-print duration"""
@@ -537,6 +595,7 @@ def format_durations_table(test_times, structure, file_out=None):
 
     print(table, file=file_out)
 
+
 def format_suite_durations_table(suite_times, structure, file_out=None):
     """print the table of durations for the whole suite, per platform"""
     title = structure["title"]
@@ -557,7 +616,10 @@ def format_suite_durations_table(suite_times, structure, file_out=None):
     }
     for platform in suite_times["start_time"]:
         for matrix_id in suite_times["start_time"][platform]:
-            duration = suite_times["end_time"][platform][matrix_id] - suite_times["start_time"][platform][matrix_id]
+            duration = (
+                suite_times["end_time"][platform][matrix_id]
+                - suite_times["start_time"][platform][matrix_id]
+            )
             if platform not in suite_durations["max"]:
                 suite_durations["max"][platform] = duration
             if platform not in suite_durations["min"]:
@@ -583,6 +645,7 @@ def format_suite_durations_table(suite_times, structure, file_out=None):
         table.add_row([longest, shortest, branch, name])
 
     print(table, file=file_out)
+
 
 def format_test_failures(summary, file_out=None):
     """creates the part of the test report that drills into the failures"""
@@ -710,7 +773,9 @@ def format_test_summary(summary, file_out=None):
         ],
     }
 
-    format_suite_durations_table(summary["suite_durations"], suite_timing_section, file_out=file_out)
+    format_suite_durations_table(
+        summary["suite_durations"], suite_timing_section, file_out=file_out
+    )
 
     timing_section = {
         "title": "Test times",
@@ -724,6 +789,37 @@ def format_test_summary(summary, file_out=None):
     }
 
     format_durations_table(summary["test_durations"], timing_section, file_out=file_out)
+
+
+def format_short_test_summary(summary, file_out=None):
+    """creates a Markdown document with a short test overview, useful as fallback
+    if the proper test summary exceeds GitHub capacity.
+    Outputs to stdout like a good 12-factor-app citizen, unless the `file_out`
+    argument is provided
+    """
+
+    print(
+        "This is an abridged test summary, in place of the full test summary which exceeds"
+        + " the GitHub limit for a summary. Please look for the full summary as an Artifact.",
+        file=file_out,
+    )
+    print(file=file_out)
+    overview = compile_overview(summary)
+
+    overview_section = {
+        "title": "Overview",
+        "header": ["failed", "out of", ""],
+        "rows": [
+            ["test combinations", "total_failed", "total_run"],
+            ["unique tests", "unique_failed", "unique_run"],
+            ["matrix branches", "matrix_failed", "matrix_run"],
+            ["k8s versions", "k8s_failed", "k8s_run"],
+            ["postgres versions", "postgres_failed", "postgres_run"],
+            ["platforms", "platform_failed", "platform_run"],
+        ],
+    }
+
+    format_overview(overview, overview_section, file_out=file_out)
 
 
 if __name__ == "__main__":
@@ -741,6 +837,18 @@ if __name__ == "__main__":
         type=str,
         help="output file",
     )
+    parser.add_argument(
+        "-s",
+        "--short",
+        type=str,
+        help="short output file",
+    )
+    parser.add_argument(
+        "-a",
+        "--alerts",
+        type=str,
+        help="short output file",
+    )
 
     args = parser.parse_args()
 
@@ -750,3 +858,11 @@ if __name__ == "__main__":
             format_test_summary(test_summary, file_out=f)
     else:
         format_test_summary(test_summary)
+
+    if args.short:
+        with open(args.short, "w") as f:
+            format_short_test_summary(test_summary, file_out=f)
+
+    if args.alerts:
+        with open(args.alerts, "w") as f:
+            format_alerts(test_summary, file_out=f)

@@ -14,6 +14,12 @@ inputs:
   output_file:
     description: "file where the markdown report should be written"
     required: false
+  short_file:
+    description: "file where the abridged markdown report should be written"
+    required: false
+  alerts_file:
+    description: "file where any alerts found should be written"
+    required: false
 runs:
   using: "docker"
   image: "Dockerfile"
@@ -22,3 +28,7 @@ runs:
     - "./${{ inputs.artifact_directory }}"
     - "--out"
     - "${{ inputs.output_file }}"
+    - "--short"
+    - "${{ inputs.short_file }}"
+    - "--alerts"
+    - "${{ inputs.alerts_file }}"
