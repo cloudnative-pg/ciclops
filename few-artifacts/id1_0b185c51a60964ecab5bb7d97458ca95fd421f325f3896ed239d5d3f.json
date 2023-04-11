@@ -1,0 +1,17 @@
+{
+    "name": "InitDB settings - custom default locale -- use the custom default locale specified",
+    "state": "passed",
+    "start_time": "2021-11-29T18:29:12.613387+01:00",
+    "end_time": "2021-11-29T18:31:07.988145+01:00",
+    "error": "",
+    "error_file": "",
+    "error_line": 0,
+    "platform": "local",
+    "postgres_kind": "PostgreSQL",
+    "matrix_id": "id1",
+    "postgres_version": "11.1",
+    "k8s_version": "22",
+    "workflow_id": 12,
+    "repo": "my-repo",
+    "branch": "my-branch"
+}

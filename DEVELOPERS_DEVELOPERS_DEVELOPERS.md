@@ -39,6 +39,14 @@ act -b --env GITHUB_STEP_SUMMARY='github-summary.md'
 
 Running this should create a file `github-summary.md` with the test summary.
 
+## Unit tests
+
+CIclops has the beginnig of a unit test suite. You can run it with:
+
+``` sh
+python3 -m unittest
+```
+
 ## How it works
 
 The files in this repository are needed for the Dockerfile to build and run, of

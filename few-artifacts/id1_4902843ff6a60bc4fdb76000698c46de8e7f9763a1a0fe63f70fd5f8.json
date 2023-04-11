@@ -1,0 +1,17 @@
+{
+    "name": "InitDB settings - initdb custom post-init SQL scripts -- can find the tables created by the post-init SQL queries",
+    "state": "failed",
+    "start_time": "2021-11-29T18:28:37.198931+01:00",
+    "end_time": "2021-11-29T18:29:12.613157+01:00",
+    "error": "Expected\n    <string>: 1\\n\nto equal\n    <string>: 2\\n",
+    "error_file": "/Users/jaime.silvela/repos/cloud-native-postgresql/tests/e2e/initdb_test.go",
+    "error_line": 80,
+    "platform": "local",
+    "postgres_kind": "PostgreSQL",
+    "matrix_id": "id1",
+    "postgres_version": "11.1",
+    "k8s_version": "22",
+    "workflow_id": 12,
+    "repo": "my-repo",
+    "branch": "my-branch"
+}

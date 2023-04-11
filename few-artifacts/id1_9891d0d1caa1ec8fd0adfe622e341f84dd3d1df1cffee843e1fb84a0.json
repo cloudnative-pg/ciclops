@@ -1,0 +1,17 @@
+{
+    "name": "ignoreFails on e2e tests -- generates a failing tests that should be ignored",
+    "state": "ignoreFailed",
+    "start_time": "0001-01-01T00:00:00Z",
+    "end_time": "0001-01-01T00:00:00Z",
+    "error": "",
+    "error_file": "",
+    "error_line": 0,
+    "platform": "local",
+    "postgres_kind": "PostgreSQL",
+    "matrix_id": "id1",
+    "postgres_version": "11.1",
+    "k8s_version": "22",
+    "workflow_id": 12,
+    "repo": "my-repo",
+    "branch": "my-branch"
+}
