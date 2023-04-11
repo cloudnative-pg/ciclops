@@ -434,7 +434,7 @@ def format_alerts(summary, file_out=None):
             if failures == runs and failures > 1:
                 if not has_total_failure:
                     print(
-                        f"{metric_name[metric]} with systematic failures:",
+                        f"{metric_name[metric]} with systematic failures:\n",
                         file=file_out,
                     )
                     has_total_failure = True
@@ -750,6 +750,9 @@ def format_test_summary(summary, file_out=None):
         ],
     }
 
+    print(f"## Alerts\n", file=file_out)
+    format_alerts(summary, file_out=file_out)
+
     format_overview(overview, overview_section, file_out=file_out)
 
     if summary["total_failed"] == 0:
@@ -818,6 +821,9 @@ def format_short_test_summary(summary, file_out=None):
             ["platforms", "platform_failed", "platform_run"],
         ],
     }
+
+    print(f"## Alerts\n", file=file_out)
+    format_alerts(summary, file_out=file_out)
 
     format_overview(overview, overview_section, file_out=file_out)
 

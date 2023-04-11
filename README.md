@@ -103,6 +103,14 @@ This file can then be sent via Slack message to alert devops teams.
 The following snippet shows how to use these features:
 
 ``` yaml
+      - name: Generate Test Summary
+        uses: cloudnative-pg/ciclops@main
+        with:
+          artifact_directory: test-artifacts/data
+          output_file: test-summary.md
+          short_file: short.md
+          alerts_file: alerts.txt
+
       - name: Check full summary fits within GH limit
         id: check-overflow
         run: |
