@@ -400,7 +400,7 @@ def compile_overview(summary):
     }
 
 
-def format_alerts(summary, file_out=None):
+def format_alerts(summary, with_header=True, file_out=None):
     """print Alerts for tests that have failed systematically
 
     We want to capture:
@@ -415,8 +415,10 @@ def format_alerts(summary, file_out=None):
     has_systematic_failures = False
 
     if summary["total_run"] == summary["total_failed"]:
+        if with_header:
+            print(f"## Alerts\n", file=file_out)
         print(f"All test combinations failed\n", file=file_out)
-        return True
+        return
 
     metric_name = {
         "by_test": "Tests",
@@ -425,28 +427,28 @@ def format_alerts(summary, file_out=None):
         "by_platform": "Platforms",
     }
 
+    output = ""
     for metric in ["by_test", "by_k8s", "by_postgres", "by_platform"]:
-        has_total_failure = False
+        has_failure_in_metric = False
         for bucket_hits in summary[metric]["failed"].items():
-            bucket = bucket_hits[0]  # the items() call retuns pairs (bucket, hits)
+            bucket = bucket_hits[0]  # the items() call retuns (bucket, hits) pairs
             failures = summary[metric]["failed"][bucket]
             runs = summary[metric]["total"][bucket]
             if failures == runs and failures > 1:
-                if not has_total_failure:
-                    print(
-                        f"{metric_name[metric]} with systematic failures:\n",
-                        file=file_out,
-                    )
-                    has_total_failure = True
-                print(
-                    f"- {bucket}: ({failures} out of {runs} tests failed)",
-                    file=file_out,
-                )
-                has_systematic_failures = True
-        if has_total_failure:
-            print(file=file_out)
+                if not has_failure_in_metric:
+                    output += f"{metric_name[metric]} with systematic failures:\n\n"
+                    has_failure_in_metric = True
+                    has_systematic_failures = True
+                output += f"- {bucket}: ({failures} out of {runs} tests failed)\n"
+        if has_failure_in_metric:
+            output += f"\n"
 
-    return has_systematic_failures
+    if not has_systematic_failures:
+        return
+
+    if with_header:
+        print(f"## Alerts\n", file=file_out)
+    print(f"{output}", end="", file=file_out)
 
 
 def format_overview(summary, structure, file_out=None):
@@ -750,9 +752,7 @@ def format_test_summary(summary, file_out=None):
         ],
     }
 
-    print(f"## Alerts\n", file=file_out)
     format_alerts(summary, file_out=file_out)
-
     format_overview(overview, overview_section, file_out=file_out)
 
     if summary["total_failed"] == 0:
@@ -822,9 +822,7 @@ def format_short_test_summary(summary, file_out=None):
         ],
     }
 
-    print(f"## Alerts\n", file=file_out)
     format_alerts(summary, file_out=file_out)
-
     format_overview(overview, overview_section, file_out=file_out)
 
 
@@ -871,4 +869,4 @@ if __name__ == "__main__":
 
     if args.alerts:
         with open(args.alerts, "w") as f:
-            format_alerts(test_summary, file_out=f)
+            format_alerts(test_summary, with_header=False, file_out=f)
