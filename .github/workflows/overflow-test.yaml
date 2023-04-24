@@ -26,6 +26,7 @@ jobs:
       - name: Create local file that is bigger than GH limit
         run: |
           dd if=/dev/zero of=big-test-summary.md bs=1M count=2
+
       - name: Check full summary fits within GH limit
         # $GITHUB_STEP_SUMMARY will reject content over 1024 bytes
         # on exceeding, the workflow WILL FAIL and still count as success()
@@ -39,15 +40,18 @@ jobs:
           fi
         # Here we force the "big test summary" to overflow GH limits, and we
         # create an output that further steps can leverage: steps.check-overflow.outputs.overflow
+
       - name: If the full summary fits within GH limits, use it
         # This step should be skipped, we expect
         if: ${{!steps.check-overflow.outputs.overflow}}
         run: |
           cat big-test-summary.md >> $GITHUB_STEP_SUMMARY
+
       - name: If the full summary is too big, use short version
         if: ${{steps.check-overflow.outputs.overflow}}
         run: |
           cat short.md >> $GITHUB_STEP_SUMMARY
+
       - name: If full summary is too big, archive it
         if: ${{steps.check-overflow.outputs.overflow}}
         uses: actions/upload-artifact@v3
@@ -55,6 +59,7 @@ jobs:
           name: test-summary.md
           path: test-summary.md
           retention-days: 7
+
       - name: Create slack body with alerts
         run: |
           echo 'slack-message<<EOF' >> $GITHUB_OUTPUT

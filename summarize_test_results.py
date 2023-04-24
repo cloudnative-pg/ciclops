@@ -431,7 +431,7 @@ def format_alerts(summary, with_header=True, file_out=None):
     for metric in ["by_test", "by_k8s", "by_postgres", "by_platform"]:
         has_failure_in_metric = False
         for bucket_hits in summary[metric]["failed"].items():
-            bucket = bucket_hits[0]  # the items() call retuns (bucket, hits) pairs
+            bucket = bucket_hits[0]  # the items() call returns (bucket, hits) pairs
             failures = summary[metric]["failed"][bucket]
             runs = summary[metric]["total"][bucket]
             if failures == runs and failures > 1:
