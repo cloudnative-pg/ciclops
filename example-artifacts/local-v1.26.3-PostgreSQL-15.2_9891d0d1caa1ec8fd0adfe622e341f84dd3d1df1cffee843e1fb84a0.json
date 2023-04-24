@@ -1,1 +1,17 @@
-{"name": "ignoreFails on e2e tests -- generates a failing tests that should be ignored", "state": "ignoreFailed", "start_time": "2023-04-10T03:05:10.146218086Z", "end_time": "2023-04-10T03:05:10.182348615Z", "error": "Expected\n    <bool>: true\nto be false", "error_file": "/home/runner/work/cloudnative-pg/cloudnative-pg/tests/e2e/ignorefails_test.go", "error_line": 31, "platform": "local", "postgres_kind": "PostgreSQL", "matrix_id": "local-v1.26.3-PostgreSQL-15.2", "postgres_version": "15.2", "k8s_version": "v1.26.3", "workflow_id": 4653592818, "repo": "cloudnative-pg/cloudnative-pg", "branch": "main"}
+{
+    "name": "ignoreFails on e2e tests -- generates a failing tests that should be ignored",
+    "state": "ignoreFailed",
+    "start_time": "2023-04-10T03:05:10.146218086Z",
+    "end_time": "2023-04-10T03:05:10.182348615Z",
+    "error": "Expected\n    <bool>: true\nto be false",
+    "error_file": "/home/runner/work/cloudnative-pg/cloudnative-pg/tests/e2e/ignorefails_test.go",
+    "error_line": 31,
+    "platform": "local",
+    "postgres_kind": "PostgreSQL",
+    "matrix_id": "local-v1.26.3-PostgreSQL-15.2",
+    "postgres_version": "15.2",
+    "k8s_version": "v1.26.3",
+    "workflow_id": 4653592818,
+    "repo": "cloudnative-pg/cloudnative-pg",
+    "branch": "main"
+}
