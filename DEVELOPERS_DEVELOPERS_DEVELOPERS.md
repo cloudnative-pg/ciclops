@@ -1,4 +1,4 @@
-# building and testing locally
+# Building and testing locally
 
 The `ciclops` GitHub Action runs using a Docker container that encapsulates the
 Python script that does the CI test analysis.
@@ -39,6 +39,14 @@ act -b --env GITHUB_STEP_SUMMARY='github-summary.md'
 
 Running this should create a file `github-summary.md` with the test summary.
 
+## Unit tests
+
+CIclops has the beginning of a unit test suite. You can run it with:
+
+``` sh
+python3 -m unittest
+```
+
 ## How it works
 
 The files in this repository are needed for the Dockerfile to build and run, of
@@ -57,4 +65,4 @@ See [GitHub support for Dockerfile](https://docs.github.com/en/actions/creating-
 
 **NOTE**: the behavior of the `COPY` command in Dockerfiles seems quite
 finicky on whether it's done recursively or not. The invocation used,
-`COPY . .`, ensured that the copy was recursive.
+`COPY . .`, ensures the copy is done recursively.

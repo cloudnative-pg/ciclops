@@ -1,9 +1,9 @@
 on: [push]
 
 jobs:
-  custom_test:
+  plain_test:
     runs-on: ubuntu-latest
-    name: Test action with act
+    name: Test CIclops with normal summary
     steps:
       - uses: actions/checkout@v3
 
@@ -12,8 +12,18 @@ jobs:
         with:
           artifact_directory: example-artifacts/
           output_file: test-summary.md
+          short_file: short.md
+          alerts_file: alerts.txt
         # NOTE: it does not seem possible to pass $GITHUB_STEP_SUMMARY as a
         # regular file to the underlying script. Hence, we create a file and
         # in a later step write with >> $GITHUB_STEP_SUMMARY
+
       - name: Create GitHub Job Summary from report
-        run: cat test-summary.md >> $GITHUB_STEP_SUMMARY
+        run: |
+          cat test-summary.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Create slack body with alerts
+        run: |
+          echo 'slack-message<<EOF' >> $GITHUB_OUTPUT
+          cat alerts.txt >> $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT

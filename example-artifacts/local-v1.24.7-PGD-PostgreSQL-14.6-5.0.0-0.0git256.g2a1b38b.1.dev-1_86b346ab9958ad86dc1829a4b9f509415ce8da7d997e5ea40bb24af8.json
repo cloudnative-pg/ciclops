@@ -1,1 +1,18 @@
-{"name": "Update operand -- upgrades operand version", "state": "failed", "start_time": "2023-01-25T10:42:28.730589019Z", "end_time": "2023-01-25T10:54:53.661654127Z", "error": "Timed out after 600.000s.\nExpected success, but got an error:\n    <*errors.errorString | 0xc000c581b0>: {\n        s: \"Assertion in callback at /home/runner/work/pg4k-pgd/pg4k-pgd/pgd-operator/tests/e2e/asserts_test.go:266 failed:\\nExpected\\n    <int32>: 0\\nto equal\\n    <int32>: 1\",\n    }\n    Assertion in callback at /home/runner/work/pg4k-pgd/pg4k-pgd/pgd-operator/tests/e2e/asserts_test.go:266 failed:\n    Expected\n        <int32>: 0\n    to equal\n        <int32>: 1", "error_file": "/home/runner/work/pg4k-pgd/pg4k-pgd/pgd-operator/tests/e2e/asserts_test.go", "error_line": 268, "platform": "local", "postgres_kind": "PostgreSQL", "redwood": false, "matrix_id": "local-v1.24.7-PGD-PostgreSQL-14.6-5.0.0-0.0git256.g2a1b38b.1.dev-1", "postgres_version": "14.6-5.0.0-0.0git256.g2a1b38b.1.dev-1", "k8s_version": "v1.24.7", "workflow_id": 4004501040, "repo": "EnterpriseDB/pg4k-pgd", "branch": "dev/cnp-3285-2"}
+{
+    "name": "Update operand -- upgrades operand version",
+    "state": "failed",
+    "start_time": "2023-01-25T10:42:28.730589019Z",
+    "end_time": "2023-01-25T10:54:53.661654127Z",
+    "error": "Timed out after 600.000s.\nExpected success, but got an error:\n    <*errors.errorString | 0xc000c581b0>: {\n        s: \"Assertion in callback at /home/runner/work/pg4k-pgd/pg4k-pgd/pgd-operator/tests/e2e/asserts_test.go:266 failed:\\nExpected\\n    <int32>: 0\\nto equal\\n    <int32>: 1\",\n    }\n    Assertion in callback at /home/runner/work/pg4k-pgd/pg4k-pgd/pgd-operator/tests/e2e/asserts_test.go:266 failed:\n    Expected\n        <int32>: 0\n    to equal\n        <int32>: 1",
+    "error_file": "/home/runner/work/pg4k-pgd/pg4k-pgd/pgd-operator/tests/e2e/asserts_test.go",
+    "error_line": 268,
+    "platform": "local",
+    "postgres_kind": "PostgreSQL",
+    "redwood": false,
+    "matrix_id": "local-v1.24.7-PGD-PostgreSQL-14.6-5.0.0-0.0git256.g2a1b38b.1.dev-1",
+    "postgres_version": "14.6-5.0.0-0.0git256.g2a1b38b.1.dev-1",
+    "k8s_version": "v1.24.7",
+    "workflow_id": 4004501040,
+    "repo": "EnterpriseDB/pg4k-pgd",
+    "branch": "dev/cnp-3285-2"
+}
