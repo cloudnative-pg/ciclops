@@ -400,8 +400,12 @@ def compile_overview(summary):
     }
 
 
-def format_alerts(summary, with_header=True, file_out=None):
+def format_alerts(summary, embed=True, file_out=None):
     """print Alerts for tests that have failed systematically
+
+    If the `embed` argument is true, it will produce a fragment of Markdown
+    to be included with the action summary.
+    Otherwise, it will be output as plain text.
 
     We want to capture:
     - all test combinations failed (if this happens, no more investigation needed)
@@ -415,9 +419,13 @@ def format_alerts(summary, with_header=True, file_out=None):
     has_systematic_failures = False
 
     if summary["total_run"] == summary["total_failed"]:
-        if with_header:
+        if embed:
             print(f"## Alerts\n", file=file_out)
-        print(f"All test combinations failed\n", file=file_out)
+            print(f"All test combinations failed\n", file=file_out)
+        else:
+            print("slack-message<<EOF", file=file_out)
+            print(f"All test combinations failed\n", file=file_out)
+            print("EOF", file=file_out)
         return
 
     metric_name = {
@@ -446,9 +454,14 @@ def format_alerts(summary, with_header=True, file_out=None):
     if not has_systematic_failures:
         return
 
-    if with_header:
+    print("slack-message<<EOF", file=file_out)
+    if embed:
         print(f"## Alerts\n", file=file_out)
-    print(f"{output}", end="", file=file_out)
+        print(f"{output}", end="", file=file_out)
+    else:
+        print("slack-message<<EOF", file=file_out)
+        print(f"{output}", end="", file=file_out)
+        print("EOF", file=file_out)
 
 
 def format_overview(summary, structure, file_out=None):
@@ -860,6 +873,10 @@ if __name__ == "__main__":
     if args.out:
         with open(args.out, "w") as f:
             format_test_summary(test_summary, file_out=f)
+    elif os.getenv("GITHUB_STEP_SUMMARY"):
+        print("with GITHUB_STEP_SUMMARY", os.getenv("GITHUB_STEP_SUMMARY"))
+        with open(os.getenv("GITHUB_STEP_SUMMARY"), "a") as f:
+            format_test_summary(test_summary, file_out=f)
     else:
         format_test_summary(test_summary)
 
@@ -870,3 +887,7 @@ if __name__ == "__main__":
     if args.alerts:
         with open(args.alerts, "w") as f:
             format_alerts(test_summary, with_header=False, file_out=f)
+    elif os.getenv("GITHUB_OUTPUT"):
+        print("with GITHUB_OUTPUT", os.getenv("GITHUB_OUTPUT"))
+        with open(os.getenv("GITHUB_OUTPUT"), "a") as f:
+            format_alerts(test_summary, file_out=f)

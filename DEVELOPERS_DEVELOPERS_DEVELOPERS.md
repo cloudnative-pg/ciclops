@@ -12,6 +12,12 @@ where you can see some JSON artifacts in the expected format. For example:
 python summarize_test_results.py --dir example-artifacts
 ```
 
+or
+
+``` shell
+GITHUB_STEP_SUMMARY=out.md python summarize_test_results.py --dir example-artifacts
+```
+
 You can build the container with
 
 ``` shell
@@ -34,8 +40,19 @@ See [`act` issue for GH job summary](https://github.com/nektos/act/issues/1187).
 As a workaround, we can use the `--env` option. Example:
 
 ``` shell
-act -b --env GITHUB_STEP_SUMMARY='github-summary.md'
+act -b
 ```
+
+The above will run all possible jobs (list them with `act -l`)
+or, if you want to specify a particular job in a particular workfow:
+
+``` shell
+act -b -j overflow_test -W .github/workflows/overflow-test.yaml
+```
+
+NOTE: `act` will provide a testing environment close to that of GitHub. In
+particular, the variables GITHUB_STEP_SUMMARY and GITHUB_OUTPUT are
+populated, and will be available to the Python script within the Docker image.
 
 Running this should create a file `github-summary.md` with the test summary.
 
