@@ -423,7 +423,7 @@ def format_alerts(summary, embed=True, file_out=None):
             print(f"## Alerts\n", file=file_out)
             print(f"All test combinations failed\n", file=file_out)
         else:
-            print("slack-message<<EOF", file=file_out)
+            print("alerts<<EOF", file=file_out)
             print(f"All test combinations failed\n", file=file_out)
             print("EOF", file=file_out)
         return
@@ -454,13 +454,13 @@ def format_alerts(summary, embed=True, file_out=None):
     if not has_systematic_failures:
         return
 
-    print("slack-message<<EOF", file=file_out)
+    print("alerts<<EOF", file=file_out)
     if embed:
         print(f"## Alerts\n", file=file_out)
         print(f"{output}", end="", file=file_out)
     else:
-        print("slack-message<<EOF", file=file_out)
-        print(f"{output}", end="", file=file_out)
+        print("alerts<<EOF", file=file_out)
+        print(f"{output}", file=file_out)
         print("EOF", file=file_out)
 
 
@@ -890,4 +890,4 @@ if __name__ == "__main__":
     elif os.getenv("GITHUB_OUTPUT"):
         print("with GITHUB_OUTPUT", os.getenv("GITHUB_OUTPUT"))
         with open(os.getenv("GITHUB_OUTPUT"), "a") as f:
-            format_alerts(test_summary, file_out=f)
+            format_alerts(test_summary, embed=False, file_out=f)
