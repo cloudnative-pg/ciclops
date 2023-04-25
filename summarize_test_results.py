@@ -886,7 +886,7 @@ if __name__ == "__main__":
 
     if args.alerts:
         with open(args.alerts, "w") as f:
-            format_alerts(test_summary, with_header=False, file_out=f)
+            format_alerts(test_summary, embed=False, file_out=f)
     elif os.getenv("GITHUB_OUTPUT"):
         print("with GITHUB_OUTPUT", os.getenv("GITHUB_OUTPUT"))
         with open(os.getenv("GITHUB_OUTPUT"), "a") as f:
