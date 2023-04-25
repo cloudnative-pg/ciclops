@@ -454,7 +454,6 @@ def format_alerts(summary, embed=True, file_out=None):
     if not has_systematic_failures:
         return
 
-    print("alerts<<EOF", file=file_out)
     if embed:
         print(f"## Alerts\n", file=file_out)
         print(f"{output}", end="", file=file_out)
