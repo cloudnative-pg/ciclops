@@ -13,50 +13,18 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Generate Test Summary
+        id: generate-summary
         uses: ./
         with:
           artifact_directory: example-artifacts/
-          short_file: short.md
-          # alerts_file: alerts.txt
-        # NOTE: it does not seem possible to pass $GITHUB_STEP_SUMMARY as a
-        # regular file to the underlying script. Hence, we create a file and
-        # in a later step write with >> $GITHUB_STEP_SUMMARY
+          limit_summary: 10
 
-      - name: Create local file that is bigger than GH limit
-        run: |
-          dd if=/dev/zero of=big-test-summary.md bs=1M count=2
-
-      - name: Check full summary fits within GH limit
-        # $GITHUB_STEP_SUMMARY will reject content over 1024 bytes
-        # on exceeding, the workflow WILL FAIL and still count as success()
-        # With this step, we do proper error flow, and fail if the limit would be
-        # exceeded.
-        id: check-overflow
-        run: |
-          size=$(stat -c '%s' big-test-summary.md)
-          if  [ "$size" -gt 1024 ]; then
-            echo "overflow=true" >> $GITHUB_OUTPUT
-          fi
-        # Here we force the "big test summary" to overflow GH limits, and we
-        # create an output that further steps can leverage: steps.check-overflow.outputs.overflow
-
-      - name: If the full summary fits within GH limits, use it
-        # This step should be skipped, we expect
-        if: ${{steps.check-overflow.outputs.overflow}}
-        run: |
-          cat big-test-summary.md >> $GITHUB_STEP_SUMMARY
-
-      - name: If the full summary is too big, use short version
-        if: ${{steps.check-overflow.outputs.overflow}}
-        run: |
-          cat short.md >> $GITHUB_STEP_SUMMARY
-
-      - name: If full summary is too big, archive it
-        if: ${{steps.check-overflow.outputs.overflow}}
+      - name: If there is an overflow summary, archive it
+        if: ${{steps.generate-summary.outputs.Overflow}}
         uses: actions/upload-artifact@v3
         with:
-          name: test-summary.md
-          path: test-summary.md
+          name: ${{steps.generate-summary.outputs.Overflow}}
+          path: ${{steps.generate-summary.outputs.Overflow}}
           retention-days: 7
 
 

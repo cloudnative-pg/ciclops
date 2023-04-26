@@ -20,6 +20,9 @@ inputs:
   alerts_file:
     description: "file where any alerts found should be written"
     required: false
+  limit_summary:
+    description: "limit in bytes that can be sent to GITHUB_STEP_SUMMARY"
+    required: false
 runs:
   using: "docker"
   image: "Dockerfile"
@@ -32,3 +35,5 @@ runs:
     - "${{ inputs.short_file }}"
     - "--alerts"
     - "${{ inputs.alerts_file }}"
+    - "--limit"
+    - "${{ inputs.limit_summary }}"

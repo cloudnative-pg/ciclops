@@ -863,7 +863,13 @@ if __name__ == "__main__":
         "-a",
         "--alerts",
         type=str,
-        help="short output file",
+        help="file with alerts",
+    )
+    parser.add_argument(
+        "-l",
+        "--limit",
+        type=int,
+        help="max number of bytes in summary",
     )
 
     args = parser.parse_args()
@@ -876,6 +882,20 @@ if __name__ == "__main__":
         print("with GITHUB_STEP_SUMMARY", os.getenv("GITHUB_STEP_SUMMARY"))
         with open(os.getenv("GITHUB_STEP_SUMMARY"), "a") as f:
             format_test_summary(test_summary, file_out=f)
+        # The default limit for GH SUMMARY is 1024K. Not sure if K = 1000 or 1024
+        # Not well documented, so choosing K=1000 for safety
+        limit = 1024000
+        if args.limit:
+            limit = args.limit
+        bytes = os.stat(os.getenv("GITHUB_STEP_SUMMARY")).st_size
+        if bytes > args.limit:
+            # we re-open the STEP_SUMMARY with "w" to wipe out previous content
+            with open(os.getenv("GITHUB_STEP_SUMMARY"), "w") as f:
+                format_short_test_summary(test_summary, file_out=f)
+            with open(os.getenv("GITHUB_OUTPUT"), "a") as f:
+                print(f"Overflow=full-summary.md", file=f)
+            with open("full-summary.md", "w") as f:
+                format_test_summary(test_summary, file_out=f)
     else:
         format_test_summary(test_summary)
 
