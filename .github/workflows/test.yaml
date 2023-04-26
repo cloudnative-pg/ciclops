@@ -11,7 +11,3 @@ jobs:
         uses: ./
         with:
           artifact_directory: example-artifacts/
-          short_file: short.md
-#          alerts_file: alerts.txt
-        # NOTE: the underlying python script will use GITHUB_STEP_SUMMARY
-        # if no `output_file` is provided, and this will be displayed in GitHub

@@ -23,6 +23,8 @@ inputs:
   limit_summary:
     description: "limit in bytes that can be sent to GITHUB_STEP_SUMMARY"
     required: false
+    # GitHub imposes a 1024K limit for GITHUB_STEP_SUMMARY
+    default: 1024000
 runs:
   using: "docker"
   image: "Dockerfile"
@@ -36,4 +38,4 @@ runs:
     - "--alerts"
     - "${{ inputs.alerts_file }}"
     - "--limit"
-    - "${{ inputs.limit_summary }}"
+    - ${{ inputs.limit_summary }}

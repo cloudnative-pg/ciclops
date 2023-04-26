@@ -26,5 +26,3 @@ jobs:
           name: ${{steps.generate-summary.outputs.Overflow}}
           path: ${{steps.generate-summary.outputs.Overflow}}
           retention-days: 7
-
-
