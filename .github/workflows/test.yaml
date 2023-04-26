@@ -3,11 +3,16 @@ on: [push]
 jobs:
   plain_test:
     runs-on: ubuntu-latest
-    name: Test CIclops with normal summary
+    name: Test CIclops normal
     steps:
       - uses: actions/checkout@v3
 
       - name: Generate Test Summary
+        id: generate-summary
         uses: ./
         with:
           artifact_directory: example-artifacts/
+
+      - name: If there are alerts, echo them
+        if: ${{steps.generate-summary.outputs.alerts}}
+        run: echo "${{steps.generate-summary.outputs.alerts}}"

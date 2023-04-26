@@ -8,7 +8,7 @@ defaults:
 jobs:
   overflow_test:
     runs-on: ubuntu-latest
-    name: Test CIclops with summary overflow
+    name: Test CIclops with overflow
     steps:
       - uses: actions/checkout@v3
 
