@@ -14,12 +14,6 @@ inputs:
   output_file:
     description: "file where the markdown report should be written"
     required: false
-  short_file:
-    description: "file where the abridged markdown report should be written"
-    required: false
-  alerts_file:
-    description: "file where any alerts found should be written"
-    required: false
   limit_summary:
     description: "limit in bytes that can be sent to GITHUB_STEP_SUMMARY"
     required: false
@@ -38,9 +32,5 @@ runs:
     - "./${{ inputs.artifact_directory }}"
     - "--out"
     - "${{ inputs.output_file }}"
-    - "--short"
-    - "${{ inputs.short_file }}"
-    - "--alerts"
-    - "${{ inputs.alerts_file }}"
     - "--limit"
     - ${{ inputs.limit_summary }}

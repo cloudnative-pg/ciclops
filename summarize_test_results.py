@@ -854,18 +854,6 @@ if __name__ == "__main__":
         help="output file",
     )
     parser.add_argument(
-        "-s",
-        "--short",
-        type=str,
-        help="short output file",
-    )
-    parser.add_argument(
-        "-a",
-        "--alerts",
-        type=str,
-        help="file with alerts",
-    )
-    parser.add_argument(
         "-l",
         "--limit",
         type=int,
@@ -896,14 +884,7 @@ if __name__ == "__main__":
     else:
         format_test_summary(test_summary)
 
-    if args.short:
-        with open(args.short, "w") as f:
-            format_short_test_summary(test_summary, file_out=f)
-
-    if args.alerts:
-        with open(args.alerts, "w") as f:
-            format_alerts(test_summary, embed=False, file_out=f)
-    elif os.getenv("GITHUB_OUTPUT"):
+    if os.getenv("GITHUB_OUTPUT"):
         print("with GITHUB_OUTPUT", os.getenv("GITHUB_OUTPUT"))
         with open(os.getenv("GITHUB_OUTPUT"), "a") as f:
             format_alerts(test_summary, embed=False, file_out=f)
