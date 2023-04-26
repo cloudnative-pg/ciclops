@@ -28,23 +28,21 @@ To get a better idea of how *ciclops* will work when used in GitHub workflows,
 it is useful to run locally with `act`. See
 [*act* homepage](https://github.com/nektos/act) for reference.
 
-In the `.github/workflows` directory in this repo, you will find a test YAML
-workflow file you can run with `act`.
+In the `.github/workflows` directory in this repo, you will find test YAML
+workflows you can run with `act`.
 
 **WARNING**: to test with `act`, take care to use the `-b` option to **bind**
 the working directory to the Docker container. The default behavior of copying
 will not work properly (at least at the time of testing this, September 2022.)
 
-`act` does not have direct support for the GitHub Job Summaries.
-See [`act` issue for GH job summary](https://github.com/nektos/act/issues/1187).
-As a workaround, we can use the `--env` option. Example:
+The following instruction will execute all available workflows:
 
 ``` shell
 act -b
 ```
 
-The above will run all possible jobs (list them with `act -l`)
-or, if you want to specify a particular job in a particular workfow:
+You can see the list of all possible jobs with `act -l`.
+If you want to specify a particular job in a particular workflow, do e.g.:
 
 ``` shell
 act -b -j overflow_test -W .github/workflows/overflow-test.yaml
@@ -53,8 +51,6 @@ act -b -j overflow_test -W .github/workflows/overflow-test.yaml
 NOTE: `act` will provide a testing environment close to that of GitHub. In
 particular, the variables GITHUB_STEP_SUMMARY and GITHUB_OUTPUT are
 populated, and will be available to the Python script within the Docker image.
-
-Running this should create a file `github-summary.md` with the test summary.
 
 ## Unit tests
 

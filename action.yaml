@@ -25,6 +25,11 @@ inputs:
     required: false
     # GitHub imposes a 1024K limit for GITHUB_STEP_SUMMARY
     default: 1024000
+outputs:
+  alerts:
+    description: 'Any systematic failures found by CIclops'
+  Overflow:
+    description: 'The name of the file where the full report was written, on oveflow'
 runs:
   using: "docker"
   image: "Dockerfile"
