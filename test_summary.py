@@ -29,14 +29,14 @@ class TestIsFailed(unittest.TestCase):
         self.assertEqual(
             summary["by_code"]["total"],
             {
-                "/Users/jaime.silvela/repos/cloud-native-postgresql/tests/e2e/initdb_test.go:80": 1
+                "/Users/myuser/repos/cloudnative-pg/tests/e2e/initdb_test.go:80": 1
             },
             "unexpected summary",
         )
         self.assertEqual(
             summary["by_code"]["tests"],
             {
-                "/Users/jaime.silvela/repos/cloud-native-postgresql/tests/e2e/initdb_test.go:80": {
+                "/Users/myuser/repos/cloudnative-pg/tests/e2e/initdb_test.go:80": {
                     "InitDB settings - initdb custom post-init SQL scripts -- can find the tables created by the post-init SQL queries": True
                 }
             },

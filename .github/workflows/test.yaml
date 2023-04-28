@@ -1,9 +1,11 @@
+name: Smoke Test
+
 on: [push]
 
 jobs:
-  plain_test:
+  smoke_test:
     runs-on: ubuntu-latest
-    name: Test CIclops normal
+    name: Smoke Test
     steps:
       - uses: actions/checkout@v3
 

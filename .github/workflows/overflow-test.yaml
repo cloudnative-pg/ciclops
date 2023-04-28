@@ -1,3 +1,5 @@
+name: Overflow Test
+
 on: [push]
 
 defaults:
@@ -8,7 +10,7 @@ defaults:
 jobs:
   overflow_test:
     runs-on: ubuntu-latest
-    name: Test CIclops with overflow
+    name: Overflow Test
     steps:
       - uses: actions/checkout@v3
 

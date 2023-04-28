@@ -34,6 +34,8 @@ workflows you can run with `act`.
 **WARNING**: to test with `act`, take care to use the `-b` option to **bind**
 the working directory to the Docker container. The default behavior of copying
 will not work properly (at least at the time of testing this, September 2022.)
+Also, make sure you are using at least the *Medium* size Docker images given
+that the `-slim` ones don't support Python.
 
 The following instruction will execute all available workflows:
 
@@ -45,12 +47,22 @@ You can see the list of all possible jobs with `act -l`.
 If you want to specify a particular job in a particular workflow, do e.g.:
 
 ``` shell
-act -b -j overflow_test -W .github/workflows/overflow-test.yaml
+act -b -j smoke_test -W .github/workflows/test.yaml
 ```
 
-NOTE: `act` will provide a testing environment close to that of GitHub. In
-particular, the variables GITHUB_STEP_SUMMARY and GITHUB_OUTPUT are
+**NOTE**: `act` will provide a testing environment close to that of GitHub.
+In particular, the variables GITHUB_STEP_SUMMARY and GITHUB_OUTPUT are
 populated, and will be available to the Python script within the Docker image.
+
+**HINT**: some workflows, like `overflow-test.yaml`, will try to upload a
+CIclops output file as an artifact by using `actions/upload-artifact`.
+In such cases you may have to specify a path to your artifact server by
+using the `--artifact-server-path` option. For example:
+
+``` shell
+mkdir /tmp/artifacts
+act -b -j overflow_test -W .github/workflows/overflow-test.yaml --artifact-server-path /tmp/artifacts
+```
 
 ## Unit tests
 
