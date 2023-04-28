@@ -1,7 +1,9 @@
+name: Unit Test
+
 on: [push]
 
 jobs:
-  plain_test:
+  unit_test:
     runs-on: ubuntu-latest
     name: Unit test
     steps:

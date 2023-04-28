@@ -14,12 +14,16 @@ inputs:
   output_file:
     description: "file where the markdown report should be written"
     required: false
-  short_file:
-    description: "file where the abridged markdown report should be written"
+  limit_summary:
+    description: "limit in bytes that can be sent to GITHUB_STEP_SUMMARY"
     required: false
-  alerts_file:
-    description: "file where any alerts found should be written"
-    required: false
+    # GitHub imposes a 1024K limit for GITHUB_STEP_SUMMARY
+    default: 1024000
+outputs:
+  alerts:
+    description: 'Any systematic failures found by CIclops'
+  Overflow:
+    description: 'The name of the file where the full report was written, on oveflow'
 runs:
   using: "docker"
   image: "Dockerfile"
@@ -28,7 +32,5 @@ runs:
     - "./${{ inputs.artifact_directory }}"
     - "--out"
     - "${{ inputs.output_file }}"
-    - "--short"
-    - "${{ inputs.short_file }}"
-    - "--alerts"
-    - "${{ inputs.alerts_file }}"
+    - "--limit"
+    - ${{ inputs.limit_summary }}

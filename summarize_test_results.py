@@ -400,8 +400,12 @@ def compile_overview(summary):
     }
 
 
-def format_alerts(summary, with_header=True, file_out=None):
+def format_alerts(summary, embed=True, file_out=None):
     """print Alerts for tests that have failed systematically
+
+    If the `embed` argument is true, it will produce a fragment of Markdown
+    to be included with the action summary.
+    Otherwise, it will be output as plain text.
 
     We want to capture:
     - all test combinations failed (if this happens, no more investigation needed)
@@ -415,9 +419,13 @@ def format_alerts(summary, with_header=True, file_out=None):
     has_systematic_failures = False
 
     if summary["total_run"] == summary["total_failed"]:
-        if with_header:
+        if embed:
             print(f"## Alerts\n", file=file_out)
-        print(f"All test combinations failed\n", file=file_out)
+            print(f"All test combinations failed\n", file=file_out)
+        else:
+            print("alerts<<EOF", file=file_out)
+            print(f"All test combinations failed\n", file=file_out)
+            print("EOF", file=file_out)
         return
 
     metric_name = {
@@ -446,9 +454,13 @@ def format_alerts(summary, with_header=True, file_out=None):
     if not has_systematic_failures:
         return
 
-    if with_header:
+    if embed:
         print(f"## Alerts\n", file=file_out)
-    print(f"{output}", end="", file=file_out)
+        print(f"{output}", end="", file=file_out)
+    else:
+        print("alerts<<EOF", file=file_out)
+        print(f"{output}", file=file_out)
+        print("EOF", file=file_out)
 
 
 def format_overview(summary, structure, file_out=None):
@@ -842,16 +854,10 @@ if __name__ == "__main__":
         help="output file",
     )
     parser.add_argument(
-        "-s",
-        "--short",
-        type=str,
-        help="short output file",
-    )
-    parser.add_argument(
-        "-a",
-        "--alerts",
-        type=str,
-        help="short output file",
+        "-l",
+        "--limit",
+        type=int,
+        help="max number of bytes in summary",
     )
 
     args = parser.parse_args()
@@ -860,13 +866,25 @@ if __name__ == "__main__":
     if args.out:
         with open(args.out, "w") as f:
             format_test_summary(test_summary, file_out=f)
+    elif os.getenv("GITHUB_STEP_SUMMARY"):
+        print("with GITHUB_STEP_SUMMARY", os.getenv("GITHUB_STEP_SUMMARY"))
+        with open(os.getenv("GITHUB_STEP_SUMMARY"), "a") as f:
+            format_test_summary(test_summary, file_out=f)
+        if args.limit:
+            print("with GITHUB_STEP_SUMMARY limit", args.limit)
+            bytes = os.stat(os.getenv("GITHUB_STEP_SUMMARY")).st_size
+            if bytes > args.limit:
+                # we re-open the STEP_SUMMARY with "w" to wipe out previous content
+                with open(os.getenv("GITHUB_STEP_SUMMARY"), "w") as f:
+                    format_short_test_summary(test_summary, file_out=f)
+                with open(os.getenv("GITHUB_OUTPUT"), "a") as f:
+                    print(f"Overflow=full-summary.md", file=f)
+                with open("full-summary.md", "w") as f:
+                    format_test_summary(test_summary, file_out=f)
     else:
         format_test_summary(test_summary)
 
-    if args.short:
-        with open(args.short, "w") as f:
-            format_short_test_summary(test_summary, file_out=f)
-
-    if args.alerts:
-        with open(args.alerts, "w") as f:
-            format_alerts(test_summary, with_header=False, file_out=f)
+    if os.getenv("GITHUB_OUTPUT"):
+        print("with GITHUB_OUTPUT", os.getenv("GITHUB_OUTPUT"))
+        with open(os.getenv("GITHUB_OUTPUT"), "a") as f:
+            format_alerts(test_summary, embed=False, file_out=f)
