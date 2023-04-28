@@ -8,7 +8,7 @@ on the `main` branch in GitHub.
 
 ## Version 1.2.0
 
-**Release date:** April 25, 2023
+**Release date:** April 28, 2023
 
 Improvements:
 
