@@ -84,16 +84,19 @@ def is_special_error(e2e_test):
     """checks if the test failed due to one of a set of well-known errors
     that may be out-of band and warrant special display in the Test Summary
     """
-    special_tests = {
-        "Open Ginkgo report": True,
-    }
     special_failures = {
         "operator was restarted": True,
         "operator was renamed": True,
     }
-    return "error" in e2e_test and (
-        e2e_test["name"] in special_tests or e2e_test["error"] in special_failures
-    )
+    return "error" in e2e_test and e2e_test["error"] in special_failures
+
+
+def is_ginkgo_report_failure(e2e_test):
+    """checks if the ginkgo report could not be read"""
+    special_tests = {
+        "Open Ginkgo report": True,
+    }
+    return "error" in e2e_test and e2e_test["name"] in special_tests
 
 
 def is_normal_failure(e2e_test):
@@ -102,6 +105,7 @@ def is_normal_failure(e2e_test):
         is_failed(e2e_test)
         and not is_special_error(e2e_test)
         and not is_external_failure(e2e_test)
+        and not is_ginkgo_report_failure(e2e_test)
     )
 
 
@@ -214,7 +218,7 @@ def count_bucketed_by_test(test_results, by_test):
     if name not in by_test["total"]:
         by_test["total"][name] = 0
     by_test["total"][name] = 1 + by_test["total"][name]
-    if is_failed(test_results) and is_normal_failure(test_results):
+    if is_failed(test_results) and not is_ginkgo_report_failure(test_results):
         if name not in by_test["failed"]:
             by_test["failed"][name] = 0
         if name not in by_test["k8s_versions_failed"]:
@@ -271,7 +275,7 @@ def count_bucketed_by_special_failures(test_results, by_special_failures):
     failure = ""
     if is_external_failure(test_results):
         failure = test_results["state"]
-    if is_special_error(test_results):
+    if is_special_error(test_results) or is_ginkgo_report_failure(test_results):
         failure = test_results["error"]
 
     test_name = test_results["name"]
@@ -335,6 +339,7 @@ def compute_test_summary(test_dir):
     {
         "total_run": 0,
         "total_failed": 0,
+        "total_special_fails": 0,
         "by_test": { … },
         "by_code": { … },
         "by_special_failures": { … },
@@ -430,6 +435,7 @@ def compute_test_summary(test_dir):
     return {
         "total_run": total_runs,
         "total_failed": total_fails,
+        "total_special_fails": total_special_fails,
         "by_test": by_test,
         "by_code": by_failing_code,
         "by_special_failures": by_special_failures,
@@ -452,6 +458,7 @@ def compile_overview(summary):
     return {
         "total_run": summary["total_run"],
         "total_failed": summary["total_failed"],
+        "total_special_fails": summary["total_special_fails"],
         "unique_run": unique_run,
         "unique_failed": unique_failed,
         "k8s_run": k8s_run,
@@ -774,20 +781,23 @@ def format_suite_durations_table(suite_times, structure, file_out=None):
 def format_test_failures(summary, file_out=None):
     """creates the part of the test report that drills into the failures"""
 
-    by_special_failures_section = {
-        "title": "Special failures",
-        "anchor": "by_special_failure",
-        "header": [
-            "failure count",
-            "special failure",
-            "failed tests",
-            "failed K8s",
-            "failed PG",
-            "failed Platforms",
-        ],
-    }
+    if summary["total_special_fails"] > 0:
+        by_special_failures_section = {
+            "title": "Special failures",
+            "anchor": "by_special_failure",
+            "header": [
+                "failure count",
+                "special failure",
+                "failed tests",
+                "failed K8s",
+                "failed PG",
+                "failed Platforms",
+            ],
+        }
 
-    format_by_special_failure(summary, by_special_failures_section, file_out=file_out)
+        format_by_special_failure(
+            summary, by_special_failures_section, file_out=file_out
+        )
 
     by_test_section = {
         "title": "Failures by test",
@@ -865,6 +875,7 @@ def format_test_summary(summary, file_out=None):
         print(
             "**Index**: [timing table](#user-content-timing) | "
             + "[suite timing table](#user-content-suite_timing) | "
+            + "[by special failure](#user-content-by_special_failure) | "
             + "[by test](#user-content-by_test) | "
             + "[by failing code](#user-content-by_code) | "
             + "[by matrix](#user-content-by_matrix) | "
