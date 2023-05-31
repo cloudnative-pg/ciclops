@@ -285,16 +285,12 @@ def count_bucketed_by_special_failures(test_results, by_special_failures):
 
     if failure not in by_special_failures["total"]:
         by_special_failures["total"][failure] = 0
-    if failure not in by_special_failures["tests_failed"]:
-        by_special_failures["tests_failed"][failure] = {}
-    if failure not in by_special_failures["k8s_versions_failed"]:
-        by_special_failures["k8s_versions_failed"][failure] = {}
-    if failure not in by_special_failures["pg_versions_failed"]:
-        by_special_failures["pg_versions_failed"][failure] = {}
-    if failure not in by_special_failures["platforms_failed"]:
-        by_special_failures["platforms_failed"][failure] = {}
 
-    by_special_failures["total"][failure] = 1 + by_special_failures["total"][failure]
+    for key in ["tests_failed", "k8s_versions_failed", "pg_versions_failed", "platforms_failed"]:
+        if failure not in by_special_failures[key]:
+            by_special_failures[key][failure] = {}
+
+    by_special_failures["total"][failure] += 1
     by_special_failures["tests_failed"][failure][test_name] = True
     by_special_failures["k8s_versions_failed"][failure][k8s_version] = True
     by_special_failures["pg_versions_failed"][failure][pg_version] = True
