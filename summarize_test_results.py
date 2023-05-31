@@ -91,6 +91,24 @@ def is_special_error(e2e_test):
     return "error" in e2e_test and e2e_test["error"] in special_failures
 
 
+def is_ginkgo_report_failure(e2e_test):
+    """checks if the ginkgo report could not be read"""
+    special_tests = {
+        "Open Ginkgo report": True,
+    }
+    return "error" in e2e_test and e2e_test["name"] in special_tests
+
+
+def is_normal_failure(e2e_test):
+    """checks the test failed and was not a special kind of failure"""
+    return (
+        is_failed(e2e_test)
+        and not is_special_error(e2e_test)
+        and not is_external_failure(e2e_test)
+        and not is_ginkgo_report_failure(e2e_test)
+    )
+
+
 def is_test_artifact(test_entry):
     should_have = [
         "name",
@@ -196,18 +214,11 @@ def count_bucketed_by_test(test_results, by_test):
     failing versions of postgres, bucketed by test name.
     """
     name = test_results["name"]
-    # tag abnormal failures, e.g.: "[operator was restarted]  Imports with …"
-    if is_external_failure(test_results):
-        tag = test_results["state"]
-        name = f"[{tag}] {name}"
-    elif is_special_error(test_results):
-        tag = test_results["error"]
-        name = f"[{tag}] {name}"
 
     if name not in by_test["total"]:
         by_test["total"][name] = 0
     by_test["total"][name] = 1 + by_test["total"][name]
-    if is_failed(test_results):
+    if is_failed(test_results) and not is_ginkgo_report_failure(test_results):
         if name not in by_test["failed"]:
             by_test["failed"][name] = 0
         if name not in by_test["k8s_versions_failed"]:
@@ -232,18 +243,14 @@ def count_bucketed_by_code(test_results, by_failing_code):
     name = test_results["name"]
     if test_results["error"] == "" or test_results["state"] == "ignoreFailed":
         return
+    # it does not make sense to show failing code that is outside of the test
+    # so we skip special failures
+    if not is_normal_failure(test_results):
+        return
 
     errfile = test_results["error_file"]
     errline = test_results["error_line"]
     err_desc = f"{errfile}:{errline}"
-
-    # tag abnormal failures, e.g.: "[operator was restarted]  Imports with …"
-    if is_external_failure(test_results):
-        tag = test_results["state"]
-        name = f"[{tag}] {name}"
-    elif is_special_error(test_results):
-        tag = test_results["error"]
-        name = f"[{tag}] {name}"
 
     if err_desc not in by_failing_code["total"]:
         by_failing_code["total"][err_desc] = 0
@@ -255,6 +262,39 @@ def count_bucketed_by_code(test_results, by_failing_code):
 
     if err_desc not in by_failing_code["errors"]:
         by_failing_code["errors"][err_desc] = test_results["error"]
+
+
+def count_bucketed_by_special_failures(test_results, by_special_failures):
+    """counts the successes, failures, failing versions of kubernetes,
+    failing versions of postgres, bucketed by test name.
+    """
+
+    if not is_failed(test_results) or is_normal_failure(test_results):
+        return
+
+    failure = ""
+    if is_external_failure(test_results):
+        failure = test_results["state"]
+    if is_special_error(test_results) or is_ginkgo_report_failure(test_results):
+        failure = test_results["error"]
+
+    test_name = test_results["name"]
+    k8s_version = test_results["k8s_version"]
+    pg_version = test_results["pg_version"]
+    platform = test_results["platform"]
+
+    if failure not in by_special_failures["total"]:
+        by_special_failures["total"][failure] = 0
+
+    for key in ["tests_failed", "k8s_versions_failed", "pg_versions_failed", "platforms_failed"]:
+        if failure not in by_special_failures[key]:
+            by_special_failures[key][failure] = {}
+
+    by_special_failures["total"][failure] += 1
+    by_special_failures["tests_failed"][failure][test_name] = True
+    by_special_failures["k8s_versions_failed"][failure][k8s_version] = True
+    by_special_failures["pg_versions_failed"][failure][pg_version] = True
+    by_special_failures["platforms_failed"][failure][platform] = True
 
 
 def count_bucketized_stats(test_results, buckets, field_id):
@@ -295,8 +335,10 @@ def compute_test_summary(test_dir):
     {
         "total_run": 0,
         "total_failed": 0,
+        "total_special_fails": 0,
         "by_test": { … },
         "by_code": { … },
+        "by_special_failures": { … },
         "by_matrix": { … },
         "by_k8s": { … },
         "by_platform": { … },
@@ -305,8 +347,12 @@ def compute_test_summary(test_dir):
         "suite_durations": { … },
     }
     """
+
+    # initialize data structures
+    ############################
     total_runs = 0
     total_fails = 0
+    total_special_fails = 0
     by_test = {
         "total": {},
         "failed": {},
@@ -324,9 +370,22 @@ def compute_test_summary(test_dir):
     by_postgres = {"total": {}, "failed": {}}
     by_platform = {"total": {}, "failed": {}}
 
+    # special failures are not due to the test having failed, but
+    # to something at a higher level, like the E2E suite having been
+    # cancelled, timed out, or having executed improperly
+    by_special_failures = {
+        "total": {},
+        "tests_failed": {},
+        "k8s_versions_failed": {},
+        "pg_versions_failed": {},
+        "platforms_failed": {},
+    }
+
     test_durations = {"max": {}, "min": {}, "slowest_branch": {}}
     suite_durations = {"start_time": {}, "end_time": {}}
 
+    # start computation of summary
+    ##############################
     dir_listing = os.listdir(test_dir)
     for file in dir_listing:
         if pathlib.Path(file).suffix != ".json":
@@ -343,11 +402,17 @@ def compute_test_summary(test_dir):
             if is_failed(test_results):
                 total_fails = 1 + total_fails
 
+            if not is_normal_failure(test_results):
+                total_special_fails = 1 + total_special_fails
+
             # bucketing by test name
             count_bucketed_by_test(test_results, by_test)
 
             # bucketing by failing code
             count_bucketed_by_code(test_results, by_failing_code)
+
+            # special failures are treated separately
+            count_bucketed_by_special_failures(test_results, by_special_failures)
 
             # bucketing by matrix ID
             count_bucketized_stats(test_results, by_matrix, "matrix_id")
@@ -366,8 +431,10 @@ def compute_test_summary(test_dir):
     return {
         "total_run": total_runs,
         "total_failed": total_fails,
+        "total_special_fails": total_special_fails,
         "by_test": by_test,
         "by_code": by_failing_code,
+        "by_special_failures": by_special_failures,
         "by_matrix": by_matrix,
         "by_k8s": by_k8s,
         "by_platform": by_platform,
@@ -387,6 +454,7 @@ def compile_overview(summary):
     return {
         "total_run": summary["total_run"],
         "total_failed": summary["total_failed"],
+        "total_special_fails": summary["total_special_fails"],
         "unique_run": unique_run,
         "unique_failed": unique_failed,
         "k8s_run": k8s_run,
@@ -540,6 +608,51 @@ def format_by_test(summary, structure, file_out=None):
     print(table, file=file_out)
 
 
+def format_by_special_failure(summary, structure, file_out=None):
+    """print metrics bucketed by special failure"""
+    title = structure["title"]
+    anchor = structure["anchor"]
+    print(f"\n<h2><a name={anchor}>{title}</a></h2>\n", file=file_out)
+
+    table = PrettyTable(align="l")
+    table.field_names = structure["header"]
+    table.set_style(MARKDOWN)
+
+    sorted_by_count = dict(
+        sorted(
+            summary["by_special_failures"]["total"].items(),
+            key=lambda item: item[1],
+            reverse=True,
+        )
+    )
+
+    for bucket in sorted_by_count:
+        failed_tests = ", ".join(
+            summary["by_special_failures"]["tests_failed"][bucket].keys()
+        )
+        failed_k8s = ", ".join(
+            summary["by_special_failures"]["k8s_versions_failed"][bucket].keys()
+        )
+        failed_pg = ", ".join(
+            summary["by_special_failures"]["pg_versions_failed"][bucket].keys()
+        )
+        failed_platforms = ", ".join(
+            summary["by_special_failures"]["platforms_failed"][bucket].keys()
+        )
+        table.add_row(
+            [
+                summary["by_special_failures"]["total"][bucket],
+                bucket,
+                failed_tests,
+                failed_k8s,
+                failed_pg,
+                failed_platforms,
+            ]
+        )
+
+    print(table, file=file_out)
+
+
 def format_by_code(summary, structure, file_out=None):
     """print metrics bucketed by failing code"""
     title = structure["title"]
@@ -663,6 +776,25 @@ def format_suite_durations_table(suite_times, structure, file_out=None):
 
 def format_test_failures(summary, file_out=None):
     """creates the part of the test report that drills into the failures"""
+
+    if summary["total_special_fails"] > 0:
+        by_special_failures_section = {
+            "title": "Special failures",
+            "anchor": "by_special_failure",
+            "header": [
+                "failure count",
+                "special failure",
+                "failed tests",
+                "failed K8s",
+                "failed PG",
+                "failed Platforms",
+            ],
+        }
+
+        format_by_special_failure(
+            summary, by_special_failures_section, file_out=file_out
+        )
+
     by_test_section = {
         "title": "Failures by test",
         "anchor": "by_test",
@@ -739,6 +871,7 @@ def format_test_summary(summary, file_out=None):
         print(
             "**Index**: [timing table](#user-content-timing) | "
             + "[suite timing table](#user-content-suite_timing) | "
+            + "[by special failure](#user-content-by_special_failure) | "
             + "[by test](#user-content-by_test) | "
             + "[by failing code](#user-content-by_code) | "
             + "[by matrix](#user-content-by_matrix) | "
