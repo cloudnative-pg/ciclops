@@ -6,6 +6,18 @@ For a complete list of changes, please refer to the
 [commits](https://github.com/cloudnative-pg/ciclops/commits/main)
 on the `main` branch in GitHub.
 
+## Version 1.2.1
+
+**Release date:** May 31, 2023
+
+This is a point release to avoid getting chatops notifications
+on Alerts due to false positives.
+
+Improvements:
+
+- Don't count as Alerts special failures such as Ginkgo report missing or suite
+  canceled or timed out (#7)
+
 ## Version 1.2.0
 
 **Release date:** April 28, 2023
