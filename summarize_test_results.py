@@ -523,12 +523,12 @@ def compute_systematic_failures_on_metric(summary, metric, embed=True):
             if not has_systematic_failure_in_metric:
                 output += f"{metric_name(metric)} with systematic failures:\n\n"
                 has_systematic_failure_in_metric = True
-            if counter < 2:
-                output += f"- {bucket}: ({failures} out of {runs} tests failed)\n"
-                counter += 1
-            else:
+            if counter >= 2 and not embed:
                 output += f"- ...and more. See full story in GH Test Summary\n"
                 break
+            else:
+                output += f"- {bucket}: ({failures} out of {runs} tests failed)\n"
+                counter += 1
     if has_systematic_failure_in_metric:
         # add a newline after at the end of the list of failures before starting the
         #  next metric
