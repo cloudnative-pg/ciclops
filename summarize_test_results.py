@@ -622,16 +622,6 @@ def format_thermometer(summary, embed=True, file_out=None):
     Otherwise, it will be output as plain text intended for stand-alone use.
     """
 
-    if summary["total_run"] == summary["total_failed"]:
-        if embed:
-            print(f"## Alerts\n", file=file_out)
-            print(f"All test combinations failed\n", file=file_out)
-        else:
-            print("alerts<<EOF", file=file_out)
-            print(f"All test combinations failed\n", file=file_out)
-            print("EOF", file=file_out)
-        return
-
     output = ""
     for metric in ["by_platform"]:
         output += compute_thermometer_on_metric(summary, metric, embed)
