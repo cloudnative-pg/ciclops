@@ -610,8 +610,7 @@ def compute_thermometer_on_metric(summary, metric, embed=True):
     and a color coding based on said percentage
     """
 
-    output = ""
-    output += f"{metric_name(metric)} thermometer:\n\n"
+    output = f"{metric_name(metric)} thermometer:\n\n"
     for bucket_hits in summary[metric]["failed"].items():
         bucket = bucket_hits[0]  # the items() call returns (bucket, hits) pairs
         failures = summary[metric]["failed"][bucket]
