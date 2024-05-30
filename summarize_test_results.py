@@ -502,14 +502,19 @@ def metric_name(metric):
     return metric_name[metric]
 
 
-def compute_systematic_failures_on_metric(summary, metric):
+def compute_systematic_failures_on_metric(summary, metric, embed=True):
     """tests if there are items within the metric that have systematic failures.
     For example, in the "by_test" metric, if there is a test with systematic failures.
     Returns a boolean to indicate there are systematic failures, and an output string
-    with the failures
+    with the failures.
+
+    The `embed` argument controls the output. If True (default) it computes the full list
+    of alerts for the metric. If False, it will cap at 2 rows with alerts, so as not to
+    to flood the chatops client.
     """
     output = ""
     has_systematic_failure_in_metric = False
+    counter = 0
     for bucket_hits in summary[metric]["failed"].items():
         bucket = bucket_hits[0]  # the items() call returns (bucket, hits) pairs
         failures = summary[metric]["failed"][bucket]
@@ -518,7 +523,12 @@ def compute_systematic_failures_on_metric(summary, metric):
             if not has_systematic_failure_in_metric:
                 output += f"{metric_name(metric)} with systematic failures:\n\n"
                 has_systematic_failure_in_metric = True
-            output += f"- {bucket}: ({failures} out of {runs} tests failed)\n"
+            if counter < 2:
+                output += f"- {bucket}: ({failures} out of {runs} tests failed)\n"
+                counter += 1
+            else:
+                output += f"- ...and more. See full story in GH Test Summary\n"
+                break
     if has_systematic_failure_in_metric:
         # add a newline after at the end of the list of failures before starting the
         #  next metric
@@ -557,7 +567,7 @@ def format_alerts(summary, embed=True, file_out=None):
 
     output = ""
     for metric in ["by_test", "by_k8s", "by_postgres", "by_platform"]:
-        has_alerts, out = compute_systematic_failures_on_metric(summary, metric)
+        has_alerts, out = compute_systematic_failures_on_metric(summary, metric, embed)
         if has_alerts:
             has_systematic_failures = True
             output += out
