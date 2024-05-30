@@ -133,6 +133,24 @@ def is_test_artifact(test_entry):
     return True
 
 
+def compress_kubernetes_version(test_entry):
+    """ensure the k8s_version field contains only the minor release
+    of kubernetes, and that the presence or absence of an initial "v" is ignored.
+    Otherwise, ciclops can over-represent failure percentages and k8s releases tested
+    """
+    k8s = test_entry["k8s_version"]
+    if k8s[0] == "v":
+        k8s = k8s[1:]
+    frags = k8s.split(".")
+    if len(frags) <= 2:
+        test_entry["k8s_version"] = k8s
+        return test_entry
+    else:
+        minor = ".".join(frags[0:2])
+        test_entry["k8s_version"] = minor
+        return test_entry
+
+
 def combine_postgres_data(test_entry):
     """combines Postgres kind and version of the test artifact to
     a single field called `pg_version`
@@ -286,7 +304,12 @@ def count_bucketed_by_special_failures(test_results, by_special_failures):
     if failure not in by_special_failures["total"]:
         by_special_failures["total"][failure] = 0
 
-    for key in ["tests_failed", "k8s_versions_failed", "pg_versions_failed", "platforms_failed"]:
+    for key in [
+        "tests_failed",
+        "k8s_versions_failed",
+        "pg_versions_failed",
+        "platforms_failed",
+    ]:
         if failure not in by_special_failures[key]:
             by_special_failures[key][failure] = {}
 
@@ -397,6 +420,7 @@ def compute_test_summary(test_dir):
                 # skipping non-artifacts
                 continue
             test_results = combine_postgres_data(parsed)
+            test_results = compress_kubernetes_version(test_results)
 
             total_runs = 1 + total_runs
             if is_failed(test_results):
@@ -468,12 +492,47 @@ def compile_overview(summary):
     }
 
 
+def metric_name(metric):
+    metric_name = {
+        "by_test": "Tests",
+        "by_k8s": "Kubernetes versions",
+        "by_postgres": "Postgres versions",
+        "by_platform": "Platforms",
+    }
+    return metric_name[metric]
+
+
+def compute_systematic_failures_on_metric(summary, metric):
+    """tests if there are items within the metric that have systematic failures.
+    For example, in the "by_test" metric, if there is a test with systematic failures.
+    Returns a boolean to indicate there are systematic failures, and an output string
+    with the failures
+    """
+    output = ""
+    has_systematic_failure_in_metric = False
+    for bucket_hits in summary[metric]["failed"].items():
+        bucket = bucket_hits[0]  # the items() call returns (bucket, hits) pairs
+        failures = summary[metric]["failed"][bucket]
+        runs = summary[metric]["total"][bucket]
+        if failures == runs and failures > 1:
+            if not has_systematic_failure_in_metric:
+                output += f"{metric_name(metric)} with systematic failures:\n\n"
+                has_systematic_failure_in_metric = True
+            output += f"- {bucket}: ({failures} out of {runs} tests failed)\n"
+    if has_systematic_failure_in_metric:
+        # add a newline after at the end of the list of failures before starting the
+        #  next metric
+        output += f"\n"
+        return True, output
+    return False, ""
+
+
 def format_alerts(summary, embed=True, file_out=None):
     """print Alerts for tests that have failed systematically
 
     If the `embed` argument is true, it will produce a fragment of Markdown
     to be included with the action summary.
-    Otherwise, it will be output as plain text.
+    Otherwise, it will be output as plain text intended for stand-alone use.
 
     We want to capture:
     - all test combinations failed (if this happens, no more investigation needed)
@@ -496,28 +555,12 @@ def format_alerts(summary, embed=True, file_out=None):
             print("EOF", file=file_out)
         return
 
-    metric_name = {
-        "by_test": "Tests",
-        "by_k8s": "Kubernetes versions",
-        "by_postgres": "Postgres versions",
-        "by_platform": "Platforms",
-    }
-
     output = ""
     for metric in ["by_test", "by_k8s", "by_postgres", "by_platform"]:
-        has_failure_in_metric = False
-        for bucket_hits in summary[metric]["failed"].items():
-            bucket = bucket_hits[0]  # the items() call returns (bucket, hits) pairs
-            failures = summary[metric]["failed"][bucket]
-            runs = summary[metric]["total"][bucket]
-            if failures == runs and failures > 1:
-                if not has_failure_in_metric:
-                    output += f"{metric_name[metric]} with systematic failures:\n\n"
-                    has_failure_in_metric = True
-                    has_systematic_failures = True
-                output += f"- {bucket}: ({failures} out of {runs} tests failed)\n"
-        if has_failure_in_metric:
-            output += f"\n"
+        has_alerts, out = compute_systematic_failures_on_metric(summary, metric)
+        if has_alerts:
+            has_systematic_failures = True
+            output += out
 
     if not has_systematic_failures:
         return
@@ -527,6 +570,77 @@ def format_alerts(summary, embed=True, file_out=None):
         print(f"{output}", end="", file=file_out)
     else:
         print("alerts<<EOF", file=file_out)
+        print(f"{output}", file=file_out)
+        print("EOF", file=file_out)
+
+
+def compute_semaphore(success_percent, embed=True):
+    """create a semaphore light summarizing the success percent.
+    If set to `embed`, an emoji will be used. Else, a textual representation
+    of a slackmoji is used.
+    """
+    if embed:
+        if success_percent >= 95:
+            return "🟢"
+        elif success_percent >= 60:
+            return "🟡"
+        else:
+            return "🔴"
+    else:
+        if success_percent >= 95:
+            return ":large_green_circle:"
+        elif success_percent >= 60:
+            return ":large_yellow_circle:"
+        else:
+            return ":red_circle:"
+
+
+def compute_thermometer_on_metric(summary, metric, embed=True):
+    """computes a summary per item in the metric, with the success percentage
+    and a color coding based on said percentage
+    """
+
+    output = ""
+    output += f"{metric_name(metric)} thermometer:\n\n"
+    for bucket_hits in summary[metric]["failed"].items():
+        bucket = bucket_hits[0]  # the items() call returns (bucket, hits) pairs
+        failures = summary[metric]["failed"][bucket]
+        runs = summary[metric]["total"][bucket]
+        success_percent = (1 - failures / runs) * 100
+        color = compute_semaphore(success_percent, embed)
+        output += f"- {color} - {bucket}: {round(success_percent,1)}% success.\t({failures} out of {runs} tests failed)\n"
+    output += f"\n"
+    return output
+
+
+def format_thermometer(summary, embed=True, file_out=None):
+    """print thermometer with the percentage of success for a set of metrics.
+    e.g. per-platform and per-kubernetes
+
+    If the `embed` argument is true, it will produce a fragment of Markdown
+    to be included with the action summary.
+    Otherwise, it will be output as plain text intended for stand-alone use.
+    """
+
+    if summary["total_run"] == summary["total_failed"]:
+        if embed:
+            print(f"## Alerts\n", file=file_out)
+            print(f"All test combinations failed\n", file=file_out)
+        else:
+            print("alerts<<EOF", file=file_out)
+            print(f"All test combinations failed\n", file=file_out)
+            print("EOF", file=file_out)
+        return
+
+    output = ""
+    for metric in ["by_platform"]:
+        output += compute_thermometer_on_metric(summary, metric, embed)
+
+    if embed:
+        print(f"## Thermometer\n", file=file_out)
+        print(f"{output}", end="", file=file_out)
+    else:
+        print("thermometer<<EOF", file=file_out)
         print(f"{output}", file=file_out)
         print("EOF", file=file_out)
 
@@ -897,6 +1011,7 @@ def format_test_summary(summary, file_out=None):
         ],
     }
 
+    format_thermometer(summary, file_out=file_out)
     format_alerts(summary, file_out=file_out)
     format_overview(overview, overview_section, file_out=file_out)
 
@@ -967,6 +1082,7 @@ def format_short_test_summary(summary, file_out=None):
         ],
     }
 
+    format_thermometer(summary, file_out=file_out)
     format_alerts(summary, file_out=file_out)
     format_overview(overview, overview_section, file_out=file_out)
 
@@ -1020,4 +1136,5 @@ if __name__ == "__main__":
     if os.getenv("GITHUB_OUTPUT"):
         print("with GITHUB_OUTPUT", os.getenv("GITHUB_OUTPUT"))
         with open(os.getenv("GITHUB_OUTPUT"), "a") as f:
+            format_thermometer(test_summary, embed=False, file_out=f)
             format_alerts(test_summary, embed=False, file_out=f)

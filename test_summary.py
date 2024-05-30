@@ -28,9 +28,7 @@ class TestIsFailed(unittest.TestCase):
 
         self.assertEqual(
             summary["by_code"]["total"],
-            {
-                "/Users/myuser/repos/cloudnative-pg/tests/e2e/initdb_test.go:80": 1
-            },
+            {"/Users/myuser/repos/cloudnative-pg/tests/e2e/initdb_test.go:80": 1},
             "unexpected summary",
         )
         self.assertEqual(
@@ -45,7 +43,9 @@ class TestIsFailed(unittest.TestCase):
         self.assertEqual(
             summary["by_matrix"], {"total": {"id1": 3}, "failed": {"id1": 1}}
         )
-        self.assertEqual(summary["by_k8s"], {"total": {"22": 3}, "failed": {"22": 1}})
+        self.assertEqual(
+            summary["by_k8s"], {"total": {"1.22": 3}, "failed": {"1.22": 1}}
+        )
         self.assertEqual(
             summary["by_platform"], {"total": {"local": 3}, "failed": {"local": 1}}
         )

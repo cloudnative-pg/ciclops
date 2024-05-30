@@ -10,7 +10,7 @@
     "postgres_kind": "PostgreSQL",
     "matrix_id": "id1",
     "postgres_version": "11.1",
-    "k8s_version": "22",
+    "k8s_version": "1.22",
     "workflow_id": 12,
     "repo": "my-repo",
     "branch": "my-branch"
