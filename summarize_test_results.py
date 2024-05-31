@@ -632,6 +632,7 @@ def format_thermometer(summary, embed=True, file_out=None):
     """
 
     output = ""
+    # we only test the "by_platform" metric for the thermometer, at the moment
     for metric in ["by_platform"]:
         output += compute_thermometer_on_metric(summary, metric, embed)
 

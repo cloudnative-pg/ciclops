@@ -25,7 +25,6 @@ Up to three outputs might be produced:
 - `thermometer`: this will contain stand-alone text with a color-coded list
   of test metrics that can serve as an overview of the state of the test suite
   on CI/CD. This is generated on every execution of Ciclops.
-  It is *always* generated.
 
 - `alerts`: this will contain stand-alone text with systematic failures
   detected by CIclops. It is meant to enable further steps in the calling
@@ -106,7 +105,8 @@ There are two advanced cases we want to call attention to:
   color-coded overview of the test health. This thermometer is included in
   the GitHub summary, and in addition, is exported as an output in plain
   text, which can be sent via chatops.
-  In addition, Ciclops will create a series of alerts when systematic failures are detected.
+  In addition, Ciclops will create a series of alerts when systematic failures
+  are detected.
   By "systematic", we mean cases such as:
 
     - all test combinations have failed
