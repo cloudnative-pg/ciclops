@@ -35,7 +35,8 @@ class TestIsFailed(unittest.TestCase):
             summary["by_code"]["tests"],
             {
                 "/Users/myuser/repos/cloudnative-pg/tests/e2e/initdb_test.go:80": {
-                    "InitDB settings - initdb custom post-init SQL scripts -- can find the tables created by the post-init SQL queries": True
+                    "InitDB settings - initdb custom post-init SQL scripts -- can find the"
+                    " tables created by the post-init SQL queries": True
                 }
             },
             "unexpected summary",

@@ -209,7 +209,7 @@ def track_time_taken(test_results, test_times, suite_times):
     if duration < test_times["min"][name]:
         test_times["min"][name] = duration
 
-    # track suite time.
+    # Track test suite timings.
     # For each platform-matrix branch, track the earliest start and the latest end
     platform = test_results["platform"]
     if platform not in suite_times["start_time"]:
@@ -261,7 +261,7 @@ def count_bucketed_by_code(test_results, by_failing_code):
     name = test_results["name"]
     if test_results["error"] == "" or test_results["state"] == "ignoreFailed":
         return
-    # it does not make sense to show failing code that is outside of the test
+    # it does not make sense to show failing code that is outside the test,
     # so we skip special failures
     if not is_normal_failure(test_results):
         return
@@ -493,13 +493,13 @@ def compile_overview(summary):
 
 
 def metric_name(metric):
-    metric_name = {
+    metric_type = {
         "by_test": "Tests",
         "by_k8s": "Kubernetes versions",
         "by_postgres": "Postgres versions",
         "by_platform": "Platforms",
     }
-    return metric_name[metric]
+    return metric_type[metric]
 
 
 def compute_systematic_failures_on_metric(summary, metric, embed=True):
@@ -510,7 +510,7 @@ def compute_systematic_failures_on_metric(summary, metric, embed=True):
 
     The `embed` argument controls the output. If True (default) it computes the full list
     of alerts for the metric. If False, it will cap at 2 rows with alerts, so as not to
-    to flood the chatops client.
+    flood the ChatOps client.
     """
     output = ""
     has_systematic_failure_in_metric = False
@@ -587,7 +587,7 @@ def format_alerts(summary, embed=True, file_out=None):
 def compute_semaphore(success_percent, embed=True):
     """create a semaphore light summarizing the success percent.
     If set to `embed`, an emoji will be used. Else, a textual representation
-    of a slackmoji is used.
+    of a Slack emoji is used.
     """
     if embed:
         if success_percent >= 95:
@@ -617,7 +617,8 @@ def compute_thermometer_on_metric(summary, metric, embed=True):
         runs = summary[metric]["total"][bucket]
         success_percent = (1 - failures / runs) * 100
         color = compute_semaphore(success_percent, embed)
-        output += f"- {color} - {bucket}: {round(success_percent,1)}% success.\t({failures} out of {runs} tests failed)\n"
+        output += f"- {color} - {bucket}: {round(success_percent, 1)}% success.\t"
+        output += f"({failures} out of {runs} tests failed)\n"
     output += f"\n"
     return output
 
@@ -787,7 +788,7 @@ def format_by_code(summary, structure, file_out=None):
 
     for bucket in sorted_by_code:
         tests = ", ".join(summary["by_code"]["tests"][bucket].keys())
-        # replace newlines and pipes to avoid interference with markdown tables
+        # replace newlines and pipes to avoid interference with Markdown tables
         errors = (
             summary["by_code"]["errors"][bucket]
             .replace("\n", "<br />")
@@ -1121,8 +1122,8 @@ if __name__ == "__main__":
             format_test_summary(test_summary, file_out=f)
         if args.limit:
             print("with GITHUB_STEP_SUMMARY limit", args.limit)
-            bytes = os.stat(os.getenv("GITHUB_STEP_SUMMARY")).st_size
-            if bytes > args.limit:
+            summary_bytes = os.stat(os.getenv("GITHUB_STEP_SUMMARY")).st_size
+            if summary_bytes > args.limit:
                 # we re-open the STEP_SUMMARY with "w" to wipe out previous content
                 with open(os.getenv("GITHUB_STEP_SUMMARY"), "w") as f:
                     format_short_test_summary(test_summary, file_out=f)
