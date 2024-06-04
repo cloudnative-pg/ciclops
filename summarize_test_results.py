@@ -611,7 +611,7 @@ def compute_thermometer_on_metric(summary, metric, embed=True):
     """
 
     output = f"{metric_name(metric)} thermometer:\n\n"
-    for bucket_hits in summary[metric]["failed"].items():
+    for bucket_hits in summary[metric]["total"].items():
         bucket = bucket_hits[0]  # the items() call returns (bucket, hits) pairs
         failures = summary[metric]["failed"][bucket]
         runs = summary[metric]["total"][bucket]
