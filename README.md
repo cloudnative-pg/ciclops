@@ -20,7 +20,11 @@ watch over Continuous Integration pipelines for all eternity.
 
 ## Outputs
 
-Two outputs might be produced:
+Up to three outputs might be produced:
+
+- `thermometer`: this will contain stand-alone text with a color-coded list
+  of test metrics that can serve as an overview of the state of the test suite
+  on CI/CD. This is generated on every execution of Ciclops.
 
 - `alerts`: this will contain stand-alone text with systematic failures
   detected by CIclops. It is meant to enable further steps in the calling
@@ -97,7 +101,12 @@ There are two advanced cases we want to call attention to:
   called `Overflow`.
 
 2. Monitoring with chatops \
-  CIclops will create a series of alerts when systematic failures are detected.
+  Ciclops will generate a "thermometer" on every execution, offering a
+  color-coded overview of the test health. This thermometer is included in
+  the GitHub summary, and in addition, is exported as an output in plain
+  text, which can be sent via chatops.
+  In addition, Ciclops will create a series of alerts when systematic failures
+  are detected.
   By "systematic", we mean cases such as:
 
     - all test combinations have failed
@@ -130,6 +139,13 @@ The following snippet shows how to use these features:
           name: ${{steps.generate-summary.outputs.Overflow}}
           path: ${{steps.generate-summary.outputs.Overflow}}
           retention-days: 7
+
+      - name: Get a slack message with the Ciclops thermometer
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_USERNAME: cnpg-bot
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_MESSAGE: ${{steps.generate-summary.outputs.thermometer}}
 
       - name: If there are alerts, send them over Slack
         if: ${{steps.generate-summary.outputs.alerts}}

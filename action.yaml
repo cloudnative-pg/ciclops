@@ -22,6 +22,8 @@ inputs:
 outputs:
   alerts:
     description: 'Any systematic failures found by CIclops'
+  thermometer:
+    description: 'A color-coded health meter'
   Overflow:
     description: 'The name of the file where the full report was written, on oveflow'
 runs:
