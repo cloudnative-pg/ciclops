@@ -613,7 +613,9 @@ def compute_thermometer_on_metric(summary, metric, embed=True):
     output = f"{metric_name(metric)} thermometer:\n\n"
     for bucket_hits in summary[metric]["total"].items():
         bucket = bucket_hits[0]  # the items() call returns (bucket, hits) pairs
-        failures = summary[metric]["failed"][bucket]
+        failures = 0
+        if bucket in summary[metric]["failed"]:
+            failures = summary[metric]["failed"][bucket]
         runs = summary[metric]["total"][bucket]
         success_percent = (1 - failures / runs) * 100
         color = compute_semaphore(success_percent, embed)
