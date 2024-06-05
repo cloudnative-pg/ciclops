@@ -1,7 +1,24 @@
-# Building and testing locally
+# Building, testing, releasing
 
 The `ciclops` GitHub Action runs using a Docker container that encapsulates the
 Python script that does the CI test analysis.
+
+## Releasing
+
+We recommend that users of Ciclops use released versions rather than `main`.
+For testing, it  may be convenient to [use a full SHA](#testing-within-a-calling-github-workflow).
+
+The procedure for cutting a release:
+
+1. Decide on the version number (following semVer)
+1. Update the [Release notes file](ReleaseNotes.md), following the convention
+  in the file, i.e. the version number included in the section, and the release
+  date in the first line
+1. Review and merge the release notes, and create and push a new tag with the
+  desired version number
+1. Cut a new release in [GitHub](https://github.com/cloudnative-pg/ciclops/releases/new),
+  choosing the recent tag, and pasting the relevant content from the
+  Release Notes file (no need for the release date line).
 
 ## Developing and testing
 
@@ -70,6 +87,22 @@ CIclops has the beginning of a unit test suite. You can run it with:
 
 ``` sh
 python3 -m unittest
+```
+
+## Testing within a calling GitHub workflow
+
+Even with unit tests and local tests, it's good to try Ciclops code out from a
+client workflow. We can use a full length commit SHA to test out changes,
+before cutting out a new release.
+See the [GitHub document on using third party actions](https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-third-party-actions).
+
+Example:
+``` yaml
+      - name: Compute the E2E test summary
+        id: generate-summary
+        uses: cloudnative-pg/ciclops@<FULL_LENGTH_SHA>
+        with:
+          artifact_directory: test-artifacts/da
 ```
 
 ## How it works
