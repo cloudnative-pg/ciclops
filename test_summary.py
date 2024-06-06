@@ -69,19 +69,35 @@ class TestIsFailed(unittest.TestCase):
 
     def test_compute_thermometer(self):
         self.maxDiff = None
-        thermometer = summarize_test_results.compute_thermometer_on_metric(self.summary, "by_platform")
+        thermometer = summarize_test_results.compute_thermometer_on_metric(
+            self.summary, "by_platform"
+        )
 
         self.assertEqual(
             thermometer,
             "Platforms thermometer:\n\n"
-            "- 🟡 - local: 66.7% success.\t(1 out of 3 tests failed)\n\n"
+            "- 🔴 - local: 66.7% success.\t(1 out of 3 tests failed)\n\n",
+        )
+
+        thermometerPlaintext = summarize_test_results.compute_thermometer_on_metric(
+            self.summary, "by_platform", False
+        )
+
+        self.assertEqual(
+            thermometerPlaintext,
+            "Platforms thermometer:\n\n"
+            "- :red_circle: - local: 66.7% success.\t(1 out of 3 tests failed)\n\n",
         )
 
     def test_compute_systematic_failures(self):
         self.maxDiff = None
 
         for metric in ["by_test", "by_k8s", "by_postgres", "by_platform"]:
-            has_alerts, out = summarize_test_results.compute_systematic_failures_on_metric(self.summary, metric)
+            has_alerts, out = (
+                summarize_test_results.compute_systematic_failures_on_metric(
+                    self.summary, metric
+                )
+            )
             self.assertEqual(has_alerts, False)
             self.assertEqual(out, "")
 
