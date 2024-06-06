@@ -589,20 +589,29 @@ def compute_semaphore(success_percent, embed=True):
     If set to `embed`, an emoji will be used. Else, a textual representation
     of a Slack emoji is used.
     """
-    if embed:
-        if success_percent >= 95:
-            return "🟢"
-        elif success_percent >= 60:
-            return "🟡"
-        else:
-            return "🔴"
+    levels = {
+        "good": {
+            "emoji": "🟢",
+            "text": ":large_green_circle:",
+        },
+        "average": {
+            "emoji": "🟡",
+            "text": ":large_yellow_circle:",
+        },
+        "bad": {
+            "emoji": "🔴",
+            "text": ":red_circle:",
+        },
+    }
+    form = "emoji"
+    if not embed:
+        form = "text"
+    if success_percent >= 99:
+        return levels["good"][form]
+    elif success_percent >= 95:
+        return levels["average"][form]
     else:
-        if success_percent >= 95:
-            return ":large_green_circle:"
-        elif success_percent >= 60:
-            return ":large_yellow_circle:"
-        else:
-            return ":red_circle:"
+        return levels["bad"][form]
 
 
 def compute_thermometer_on_metric(summary, metric, embed=True):
