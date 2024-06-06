@@ -6,6 +6,22 @@ For a complete list of changes, please refer to the
 [commits](https://github.com/cloudnative-pg/ciclops/commits/main)
 on the `main` branch in GitHub.
 
+## Version 1.3.0
+
+**Release date:** Jun 06, 2024
+
+Improvements:
+
+- Introduce a "thermometer" color-coded view displaying the test percentage
+  failure per platform, both for the GH summary and as an output that can
+  be used in chatops (#10)
+- Cap the number of alerts shown in chatops (max 2 per metric) (#10)
+- Update the GH actions dependencies (#10)
+
+Fixes:
+
+- Stop overcounting kubernetes versions and failure rates in them (#10)
+
 ## Version 1.2.1
 
 **Release date:** May 31, 2023
