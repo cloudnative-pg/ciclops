@@ -53,6 +53,7 @@ a summary in Markdown, which can then be rendered in GitHub using
 import argparse
 from datetime import datetime
 import json
+import math
 import os
 import pathlib
 from prettytable import MARKDOWN
@@ -628,7 +629,9 @@ def compute_thermometer_on_metric(summary, metric, embed=True):
         runs = summary[metric]["total"][bucket]
         success_percent = (1 - failures / runs) * 100
         color = compute_semaphore(success_percent, embed)
-        output += f"- {color} - {bucket}: {round(success_percent, 1)}% success.\t"
+        output += (
+            f"- {color} - {bucket}: {math.floor(success_percent*10)/10}% success.\t"
+        )
         output += f"({failures} out of {runs} tests failed)\n"
     output += f"\n"
     return output

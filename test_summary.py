@@ -76,7 +76,7 @@ class TestIsFailed(unittest.TestCase):
         self.assertEqual(
             thermometer,
             "Platforms thermometer:\n\n"
-            "- 🔴 - local: 66.7% success.\t(1 out of 3 tests failed)\n\n",
+            "- 🔴 - local: 66.6% success.\t(1 out of 3 tests failed)\n\n",
         )
 
         thermometerPlaintext = summarize_test_results.compute_thermometer_on_metric(
@@ -86,7 +86,7 @@ class TestIsFailed(unittest.TestCase):
         self.assertEqual(
             thermometerPlaintext,
             "Platforms thermometer:\n\n"
-            "- :red_circle: - local: 66.7% success.\t(1 out of 3 tests failed)\n\n",
+            "- :red_circle: - local: 66.6% success.\t(1 out of 3 tests failed)\n\n",
         )
 
     def test_compute_systematic_failures(self):
