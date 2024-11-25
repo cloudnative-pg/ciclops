@@ -97,6 +97,7 @@ before cutting out a new release.
 See the [GitHub document on using third party actions](https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-third-party-actions).
 
 Example:
+
 ``` yaml
       - name: Compute the E2E test summary
         id: generate-summary

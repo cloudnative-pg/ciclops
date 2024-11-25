@@ -6,6 +6,15 @@ For a complete list of changes, please refer to the
 [commits](https://github.com/cloudnative-pg/ciclops/commits/main)
 on the `main` branch in GitHub.
 
+## Version 1.3.1
+
+**Release date:** Nov 25, 2024
+
+Improvements:
+
+- Use `floor` rather than `round` in the thermometer, so that we don't get 100%
+  success in the presence of failures (#15)
+
 ## Version 1.3.0
 
 **Release date:** Jun 06, 2024
