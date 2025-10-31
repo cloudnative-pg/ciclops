@@ -103,7 +103,7 @@ Example:
         id: generate-summary
         uses: cloudnative-pg/ciclops@<FULL_LENGTH_SHA>
         with:
-          artifact_directory: test-artifacts/da
+          artifact_directory: test-artifacts
 ```
 
 ## How it works

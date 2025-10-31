@@ -2,20 +2,24 @@ name: Unit Test
 
 on: [push]
 
+permissions: {}
+
 jobs:
   unit_test:
     runs-on: ubuntu-latest
     name: Unit test
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          persist-credentials: false
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.x'
+      - name: Set up Python
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6
+        with:
+          python-version: '3.x'
 
-    - name: Install dependencies
-      run: python -m pip install --upgrade pip prettytable
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip prettytable
 
-    - name: Run suite
-      run: python test_summary.py -v
+      - name: Run suite
+        run: python test_summary.py -v

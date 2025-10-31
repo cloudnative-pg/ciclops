@@ -2,12 +2,16 @@ name: Smoke Test
 
 on: [push]
 
+permissions: {}
+
 jobs:
   smoke_test:
     runs-on: ubuntu-latest
     name: Smoke Test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          persist-credentials: false
 
       - name: Generate Test Summary
         id: generate-summary
@@ -16,8 +20,12 @@ jobs:
           artifact_directory: example-artifacts/
 
       - name: If there are alerts, echo them
-        if: ${{steps.generate-summary.outputs.alerts}}
-        run: echo "${{steps.generate-summary.outputs.alerts}}"
+        if: ${{ steps.generate-summary.outputs.alerts }}
+        env:
+          ALERTS: ${{ steps.generate-summary.outputs.alerts }}
+        run: echo "$ALERTS"
 
       - name: Echo the thermometer
-        run: echo "${{steps.generate-summary.outputs.thermometer}}"
+        env:
+          THERMOMETER: ${{ steps.generate-summary.outputs.thermometer }}
+        run: echo "$THERMOMETER"
