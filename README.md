@@ -63,28 +63,22 @@ For example:
     …
     …
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
 
       - name: Create a directory for the artifacts
         run: mkdir test-artifacts
 
       - name: Download all artifacts to the directory
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v6
         with:
           path: test-artifacts
-
-      - name: Flatten all artifacts onto directory
-        # The download-artifact action, since we did not give it a name,
-        # downloads all artifacts and creates a new folder for each.
-        # In this step we bring all the JSONs to a single folder
-        run: |
-            mkdir test-artifacts/data
-            mv test-artifacts/*/*.json test-artifacts/data
+          pattern: testartifacts-*
+          merge-multiple: true
 
       - name: Compute the E2E test summary
         uses: cloudnative-pg/ciclops@main
         with:
-          artifact_directory: test-artifacts/data
+          artifact_directory: test-artifacts
 ```
 
 ## Advanced Usage
@@ -130,7 +124,7 @@ The following snippet shows how to use these features:
         id: generate-summary
         uses: cloudnative-pg/ciclops@main
         with:
-          artifact_directory: test-artifacts/data
+          artifact_directory: test-artifacts
 
       - name: If there is an overflow summary, archive it
         if: ${{steps.generate-summary.outputs.Overflow}}

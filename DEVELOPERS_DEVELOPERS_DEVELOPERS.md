@@ -103,25 +103,21 @@ Example:
         id: generate-summary
         uses: cloudnative-pg/ciclops@<FULL_LENGTH_SHA>
         with:
-          artifact_directory: test-artifacts/da
+          artifact_directory: test-artifacts
 ```
 
 ## How it works
 
-The files in this repository are needed for the Dockerfile to build and run, of
-course. In addition, GitHub will copy the files in the **user's** GitHub
-workflow location to the Dockerfile too. This is how the folder with the JSON
-artifacts will get passed. When invoking with `act`, we are simulating this with
-the `-b` option.
+`summarize_test_results.py` and its `requirements.txt` are needed for the
+Dockerfile to build and run.
+In addition, at runtime GitHub will copy the files in the **user's**
+`GITHUB_WORKSPACE` directory to the Dockerfile, by running the container with a
+bind mount similar to the following one:
 
-In the Dockerfile, the `COPY . .` line will include the directory with the
-JSON test artifacts at build time.
-See [GitHub support for Dockerfile](https://docs.github.com/en/actions/creating-actions/dockerfile-support-for-github-actions):
+```
+-v "/home/runner/work/ciclops/ciclops":"/github/workspace"
+```
 
-> Before the action executes, GitHub will mount the GITHUB_WORKSPACE directory
-> on top of anything that was at that location in the Docker image and set
-> GITHUB_WORKSPACE as the working directory.
-
-**NOTE**: the behavior of the `COPY` command in Dockerfiles seems quite
-finicky on whether it's done recursively or not. The invocation used,
-`COPY . .`, ensures the copy is done recursively.
+and it will use that as the container's `WORKDIR`.
+This is how the folder with the JSON artifacts will get passed.
+When invoking with `act`, we are simulating this with the `-b` option.
