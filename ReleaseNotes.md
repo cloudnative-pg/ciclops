@@ -6,6 +6,16 @@ For a complete list of changes, please refer to the
 [commits](https://github.com/cloudnative-pg/ciclops/commits/main)
 on the `main` branch in GitHub.
 
+## Version 1.3.2
+
+**Release date:** Nov 06, 2025
+
+Improvements:
+
+- Update the Dockerfile to use `python:3.14-alpine` as a base image and to avoid
+  copying unneded project's files (#17)
+- Update the GH actions dependencies (#17)
+
 ## Version 1.3.1
 
 **Release date:** Nov 25, 2024
