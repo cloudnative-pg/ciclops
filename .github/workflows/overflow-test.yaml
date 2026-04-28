@@ -27,7 +27,7 @@ jobs:
 
       - name: If there is an overflow summary, archive it
         if: ${{steps.generate-summary.outputs.Overflow}}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{steps.generate-summary.outputs.Overflow}}
           path: ${{steps.generate-summary.outputs.Overflow}}
