@@ -23,7 +23,16 @@ The procedure for cutting a release:
 ## Developing and testing
 
 You can test directly with the Python code on the `example-artifacts` directory,
-where you can see some JSON artifacts in the expected format. For example:
+where you can see some JSON artifacts in the expected format.
+
+Before running the python scripts, you may need to install the requirements
+(just `prettytable` currently).
+
+``` shell
+pip install --no-cache-dir -r requirements.txt
+```
+
+A basic execution looks like this:
 
 ``` shell
 python summarize_test_results.py --dir example-artifacts

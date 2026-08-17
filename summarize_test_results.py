@@ -200,69 +200,82 @@ def track_time_taken(test_results, test_times, suite_times):
     end_time = datetime.fromisoformat(end_frags[0])
     duration = end_time - start_time
     matrix_id = test_results["matrix_id"]
-    if name not in test_times["max"]:
-        test_times["max"][name] = duration
-    if name not in test_times["min"]:
-        test_times["min"][name] = duration
-    if name not in test_times["slowest_branch"]:
-        test_times["slowest_branch"][name] = matrix_id
+    if name not in test_times:
+        test_times[name] = {
+            "max": duration,
+            "min": duration,
+            "slowest_branch": matrix_id,
+        }
+    bucket = test_times[name]
 
-    if duration > test_times["max"][name]:
-        test_times["max"][name] = duration
-        test_times["slowest_branch"][name] = matrix_id
-    if duration < test_times["min"][name]:
-        test_times["min"][name] = duration
+    if duration > bucket["max"]:
+        bucket["max"] = duration
+        bucket["slowest_branch"] = matrix_id
+    if duration < bucket["min"]:
+        bucket["min"] = duration
 
     # Track test suite timings.
     # For each platform-matrix branch, track the earliest start and the latest end
     platform = test_results["platform"]
-    if platform not in suite_times["start_time"]:
-        suite_times["start_time"][platform] = {}
-    if matrix_id not in suite_times["start_time"][platform]:
-        suite_times["start_time"][platform][matrix_id] = start_time
-    if platform not in suite_times["end_time"]:
-        suite_times["end_time"][platform] = {}
-    if matrix_id not in suite_times["end_time"][platform]:
-        suite_times["end_time"][platform][matrix_id] = end_time
+    if platform not in suite_times:
+        suite_times[platform] = {
+            "start_time": start_time,
+            "end_time": end_time,
+            matrix_id: {
+                "start_time": start_time,
+                "end_time": end_time
+            }
+        }
+    suite_bucket = suite_times[platform]
 
-    if start_time < suite_times["start_time"][platform][matrix_id]:
-        suite_times["start_time"][platform][matrix_id] = start_time
-    if suite_times["end_time"][platform][matrix_id] < end_time:
-        suite_times["end_time"][platform][matrix_id] = end_time
+    if start_time < suite_bucket["start_time"]:
+        suite_bucket["start_time"] = start_time
+    if suite_bucket["end_time"] < end_time:
+        suite_bucket["end_time"] = end_time
 
+    if matrix_id not in suite_bucket:
+        suite_bucket[matrix_id] = {
+            "start_time": start_time,
+            "end_time": end_time
+        }
+    else:
+        if start_time < suite_bucket[matrix_id]["start_time"]:
+            suite_bucket[matrix_id]["start_time"] = start_time
+        if suite_bucket[matrix_id]["end_time"] < end_time:
+            suite_bucket[matrix_id]["end_time"] = end_time
 
 def count_bucketed_by_test(test_results, by_test):
     """counts the successes, failures, failing versions of kubernetes,
     failing versions of postgres, bucketed by test name.
     """
+    newEntry = {
+        "total": 0,
+        "failed": 0,
+        "k8s_versions_failed": {},
+        "pg_versions_failed": {},
+        "platforms_failed": {}
+    }
     name = test_results["name"]
 
-    if name not in by_test["total"]:
-        by_test["total"][name] = 0
-    by_test["total"][name] = 1 + by_test["total"][name]
+    if name not in by_test:
+        by_test[name] = newEntry
+    bucket = by_test[name]
+
+    bucket["total"] = 1 + bucket["total"]
     if is_failed(test_results) and not is_ginkgo_report_failure(test_results):
-        if name not in by_test["failed"]:
-            by_test["failed"][name] = 0
-        if name not in by_test["k8s_versions_failed"]:
-            by_test["k8s_versions_failed"][name] = {}
-        if name not in by_test["pg_versions_failed"]:
-            by_test["pg_versions_failed"][name] = {}
-        if name not in by_test["platforms_failed"]:
-            by_test["platforms_failed"][name] = {}
-        by_test["failed"][name] = 1 + by_test["failed"][name]
+        bucket["failed"] = 1 + bucket["failed"]
         k8s_version = test_results["k8s_version"]
         pg_version = test_results["pg_version"]
         platform = test_results["platform"]
-        by_test["k8s_versions_failed"][name][k8s_version] = True
-        by_test["pg_versions_failed"][name][pg_version] = True
-        by_test["platforms_failed"][name][platform] = True
+        bucket["k8s_versions_failed"][k8s_version] = True
+        bucket["pg_versions_failed"][pg_version] = True
+        bucket["platforms_failed"][platform] = True
 
 
 def count_bucketed_by_code(test_results, by_failing_code):
     """buckets by failed code, with a list of tests where the assertion fails,
     and a view of the stack trace.
     """
-    name = test_results["name"]
     if test_results["error"] == "" or test_results["state"] == "ignoreFailed":
         return
     # it does not make sense to show failing code that is outside the test,
@@ -270,21 +283,24 @@ def count_bucketed_by_code(test_results, by_failing_code):
     if not is_normal_failure(test_results):
         return
 
+    newEntry = {
+        "total": 0,
+        "tests": {},
+        "errors": {},
+    }
+    name = test_results["name"]
+
     errfile = test_results["error_file"]
     errline = test_results["error_line"]
     err_desc = f"{errfile}:{errline}"
 
-    if err_desc not in by_failing_code["total"]:
-        by_failing_code["total"][err_desc] = 0
-    by_failing_code["total"][err_desc] = 1 + by_failing_code["total"][err_desc]
+    if err_desc not in by_failing_code:
+        by_failing_code[err_desc] = newEntry
 
-    if err_desc not in by_failing_code["tests"]:
-        by_failing_code["tests"][err_desc] = {}
-    by_failing_code["tests"][err_desc][name] = True
-
-    if err_desc not in by_failing_code["errors"]:
-        by_failing_code["errors"][err_desc] = test_results["error"]
-
+    bucket = by_failing_code[err_desc]
+    bucket["total"] = 1 + bucket["total"]
+    bucket["tests"][name] = True
+    bucket["errors"] = test_results["error"]
 
 def count_bucketed_by_special_failures(test_results, by_special_failures):
     """counts the successes, failures, failing versions of kubernetes,
@@ -293,6 +309,14 @@ def count_bucketed_by_special_failures(test_results, by_special_failures):
 
     if not is_failed(test_results) or is_normal_failure(test_results):
         return
+
+    newEntry = {
+        "total": 0,
+        "tests_failed": {},
+        "k8s_versions_failed": {},
+        "pg_versions_failed": {},
+        "platforms_failed": {},
+    }
 
     failure = ""
     if is_external_failure(test_results):
@@ -305,38 +329,34 @@ def count_bucketed_by_special_failures(test_results, by_special_failures):
     pg_version = test_results["pg_version"]
     platform = test_results["platform"]
 
-    if failure not in by_special_failures["total"]:
-        by_special_failures["total"][failure] = 0
+    if failure not in by_special_failures:
+        by_special_failures[failure] = newEntry
+    bucket = by_special_failures[failure]
 
-    for key in [
-        "tests_failed",
-        "k8s_versions_failed",
-        "pg_versions_failed",
-        "platforms_failed",
-    ]:
-        if failure not in by_special_failures[key]:
-            by_special_failures[key][failure] = {}
-
-    by_special_failures["total"][failure] += 1
-    by_special_failures["tests_failed"][failure][test_name] = True
-    by_special_failures["k8s_versions_failed"][failure][k8s_version] = True
-    by_special_failures["pg_versions_failed"][failure][pg_version] = True
-    by_special_failures["platforms_failed"][failure][platform] = True
+    bucket["total"] += 1
+    bucket["tests_failed"][test_name] = True
+    bucket["k8s_versions_failed"][k8s_version] = True
+    bucket["pg_versions_failed"][pg_version] = True
+    bucket["platforms_failed"][platform] = True
 
 
 def count_bucketized_stats(test_results, buckets, field_id):
-    """counts the success/failures onto a bucket. This means there are two
-    dictionaries: one for `total` tests, one for `failed` tests.
+    """bucketizes test results according to the field_id.
+    For each bucket, it counts the total tests run and the failed tests.
     """
+    newEntry = {
+        "total": 0,
+        "failed": 0
+    }
     bucket_id = test_results[field_id]
-    if bucket_id not in buckets["total"]:
-        buckets["total"][bucket_id] = 0
-    buckets["total"][bucket_id] = 1 + buckets["total"][bucket_id]
+    if bucket_id not in buckets:
+        buckets[bucket_id] = newEntry
+
+    bucket = buckets[bucket_id]
+    bucket["total"] = 1 + bucket["total"]
 
     if is_failed(test_results):
-        if bucket_id not in buckets["failed"]:
-            buckets["failed"][bucket_id] = 0
-        buckets["failed"][bucket_id] = 1 + buckets["failed"][bucket_id]
+        bucket["failed"] += 1
 
 
 def compute_bucketized_summary(parameter_buckets):
@@ -346,16 +366,16 @@ def compute_bucketized_summary(parameter_buckets):
     """
     failed_buckets_count = 0
     total_buckets_count = 0
-    for _ in parameter_buckets["total"]:
-        total_buckets_count = 1 + total_buckets_count
-    for _ in parameter_buckets["failed"]:
-        failed_buckets_count = 1 + failed_buckets_count
+    for k, v in parameter_buckets.items():
+        total_buckets_count += v["total"]
+        failed_buckets_count += v["failed"]
     return failed_buckets_count, total_buckets_count
 
 
 def compute_test_summary(test_dir):
     """iterate over the JSON artifact files in `test_dir`, and
-    bucket them for comprehension.
+    bucket them in various ways to provide insights as to failure
+    patterns.
 
     Returns a dictionary of dictionaries:
 
@@ -380,36 +400,23 @@ def compute_test_summary(test_dir):
     total_runs = 0
     total_fails = 0
     total_special_fails = 0
-    by_test = {
-        "total": {},
-        "failed": {},
-        "k8s_versions_failed": {},
-        "pg_versions_failed": {},
-        "platforms_failed": {},
-    }
-    by_failing_code = {
-        "total": {},
-        "tests": {},
-        "errors": {},
-    }
-    by_matrix = {"total": {}, "failed": {}}
-    by_k8s = {"total": {}, "failed": {}}
-    by_postgres = {"total": {}, "failed": {}}
-    by_platform = {"total": {}, "failed": {}}
+    by_test = {}
+    by_failing_code = {}
+    by_matrix = {}
+    by_k8s = {}
+    by_postgres = {}
+    by_platform = {}
 
     # special failures are not due to the test having failed, but
     # to something at a higher level, like the E2E suite having been
     # cancelled, timed out, or having executed improperly
-    by_special_failures = {
-        "total": {},
-        "tests_failed": {},
-        "k8s_versions_failed": {},
-        "pg_versions_failed": {},
-        "platforms_failed": {},
-    }
+    by_special_failures = {}
 
-    test_durations = {"max": {}, "min": {}, "slowest_branch": {}}
-    suite_durations = {"start_time": {}, "end_time": {}}
+    # test_durations track the quickest and slowest tests over the
+    # total execution.
+    # suite_durations compute the duration of the test suite overall
+    test_durations = {}
+    suite_durations = {}
 
     # start computation of summary
     ##############################
@@ -426,6 +433,10 @@ def compute_test_summary(test_dir):
             test_results = combine_postgres_data(parsed)
             test_results = compress_kubernetes_version(test_results)
 
+            # From this point, test_results is the representation of
+            # one text execution, i.e. one E2E test run on one version
+            # of CNPG x Postgres x Kubernetes
+
             total_runs = 1 + total_runs
             if is_failed(test_results):
                 total_fails = 1 + total_fails
@@ -440,6 +451,7 @@ def compute_test_summary(test_dir):
             count_bucketed_by_code(test_results, by_failing_code)
 
             # special failures are treated separately
+            # bucketing by the failure
             count_bucketed_by_special_failures(test_results, by_special_failures)
 
             # bucketing by matrix ID
@@ -454,6 +466,8 @@ def compute_test_summary(test_dir):
             # bucketing by platform
             count_bucketized_stats(test_results, by_platform, "platform")
 
+            # bucketing test_durations by test name
+            # bucketing suite_durations by platform and also by matrix_id
             track_time_taken(test_results, test_durations, suite_durations)
 
     return {
@@ -519,10 +533,9 @@ def compute_systematic_failures_on_metric(summary, metric, embed=True):
     output = ""
     has_systematic_failure_in_metric = False
     counter = 0
-    for bucket_hits in summary[metric]["failed"].items():
-        bucket = bucket_hits[0]  # the items() call returns (bucket, hits) pairs
-        failures = summary[metric]["failed"][bucket]
-        runs = summary[metric]["total"][bucket]
+    for bucket, stats in summary[metric].items():
+        failures = stats["failed"]
+        runs = stats["total"]
         if failures == runs and failures > 1:
             if not has_systematic_failure_in_metric:
                 output += f"{metric_name(metric)} with systematic failures:\n\n"
@@ -624,12 +637,9 @@ def compute_thermometer_on_metric(summary, metric, embed=True):
     """
 
     output = f"{metric_name(metric)} thermometer:\n\n"
-    for bucket_hits in summary[metric]["total"].items():
-        bucket = bucket_hits[0]  # the items() call returns (bucket, hits) pairs
-        failures = 0
-        if bucket in summary[metric]["failed"]:
-            failures = summary[metric]["failed"][bucket]
-        runs = summary[metric]["total"][bucket]
+    for bucket, stats in summary[metric].items():
+        failures = stats["failed"]
+        runs = stats["total"]
         success_percent = (1 - failures / runs) * 100
         color = compute_semaphore(success_percent, embed)
         output += (
@@ -693,11 +703,11 @@ def format_bucket_table(buckets, structure, file_out=None):
     table.set_style(MARKDOWN)
 
     sorted_by_fail = dict(
-        sorted(buckets["failed"].items(), key=lambda item: item[1], reverse=True)
+        sorted(buckets.items(), key=lambda item: item[1]["failed"], reverse=True)
     )
 
     for bucket in sorted_by_fail:
-        table.add_row([buckets["failed"][bucket], buckets["total"][bucket], bucket])
+        table.add_row([buckets[bucket]["failed"], buckets[bucket]["total"], bucket])
 
     print(table, file=file_out)
 
@@ -714,22 +724,22 @@ def format_by_test(summary, structure, file_out=None):
 
     sorted_by_fail = dict(
         sorted(
-            summary["by_test"]["failed"].items(),
-            key=lambda item: item[1],
+            summary["by_test"].items(),
+            key=lambda item: item[1]["failed"],
             reverse=True,
         )
     )
 
     for bucket in sorted_by_fail:
-        failed_k8s = ", ".join(summary["by_test"]["k8s_versions_failed"][bucket].keys())
-        failed_pg = ", ".join(summary["by_test"]["pg_versions_failed"][bucket].keys())
+        failed_k8s = ", ".join(summary["by_test"][bucket]["k8s_versions_failed"].keys())
+        failed_pg = ", ".join(summary["by_test"][bucket]["pg_versions_failed"].keys())
         failed_platforms = ", ".join(
-            summary["by_test"]["platforms_failed"][bucket].keys()
+            summary["by_test"][bucket]["platforms_failed"].keys()
         )
         table.add_row(
             [
-                summary["by_test"]["failed"][bucket],
-                summary["by_test"]["total"][bucket],
+                summary["by_test"][bucket]["failed"],
+                summary["by_test"][bucket]["total"],
                 failed_k8s,
                 failed_pg,
                 failed_platforms,
@@ -752,28 +762,28 @@ def format_by_special_failure(summary, structure, file_out=None):
 
     sorted_by_count = dict(
         sorted(
-            summary["by_special_failures"]["total"].items(),
-            key=lambda item: item[1],
+            summary["by_special_failures"].items(),
+            key=lambda item: item[1]["total"],
             reverse=True,
         )
     )
 
     for bucket in sorted_by_count:
         failed_tests = ", ".join(
-            summary["by_special_failures"]["tests_failed"][bucket].keys()
+            summary["by_special_failures"][bucket]["tests_failed"].keys()
         )
         failed_k8s = ", ".join(
-            summary["by_special_failures"]["k8s_versions_failed"][bucket].keys()
+            summary["by_special_failures"][bucket]["k8s_versions_failed"].keys()
         )
         failed_pg = ", ".join(
-            summary["by_special_failures"]["pg_versions_failed"][bucket].keys()
+            summary["by_special_failures"][bucket]["pg_versions_failed"].keys()
         )
         failed_platforms = ", ".join(
-            summary["by_special_failures"]["platforms_failed"][bucket].keys()
+            summary["by_special_failures"][bucket]["platforms_failed"].keys()
         )
         table.add_row(
             [
-                summary["by_special_failures"]["total"][bucket],
+                summary["by_special_failures"][bucket]["total"],
                 bucket,
                 failed_tests,
                 failed_k8s,
@@ -797,24 +807,24 @@ def format_by_code(summary, structure, file_out=None):
 
     sorted_by_code = dict(
         sorted(
-            summary["by_code"]["total"].items(),
-            key=lambda item: item[1],
+            summary["by_code"].items(),
+            key=lambda item: item[1]["total"],
             reverse=True,
         )
     )
 
     for bucket in sorted_by_code:
-        tests = ", ".join(summary["by_code"]["tests"][bucket].keys())
+        tests = ", ".join(summary["by_code"][bucket]["tests"].keys())
         # replace newlines and pipes to avoid interference with Markdown tables
         errors = (
-            summary["by_code"]["errors"][bucket]
+            summary["by_code"][bucket]["errors"]
             .replace("\n", "<br />")
             .replace("|", "—")
         )
         err_cell = f"<details><summary>Click to expand</summary><span>{errors}</span></details>"
         table.add_row(
             [
-                summary["by_code"]["total"][bucket],
+                summary["by_code"][bucket]["total"],
                 bucket,
                 tests,
                 err_cell,
@@ -841,15 +851,17 @@ def format_durations_table(test_times, structure, file_out=None):
     table.set_style(MARKDOWN)
     table.field_names = structure["header"]
 
+    print(test_times)
+
     sorted_by_longest = dict(
-        sorted(test_times["max"].items(), key=lambda item: item[1], reverse=True)
+        sorted(test_times.items(), key=lambda item: item[1]["max"], reverse=True)
     )
 
     for bucket in sorted_by_longest:
         name = bucket
-        longest = format_duration(test_times["max"][bucket])
-        shortest = format_duration(test_times["min"][bucket])
-        branch = test_times["slowest_branch"][bucket]
+        longest = format_duration(test_times[bucket]["max"])
+        shortest = format_duration(test_times[bucket]["min"])
+        branch = test_times[bucket]["slowest_branch"]
         table.add_row([longest, shortest, branch, name])
 
     print(table, file=file_out)
@@ -873,11 +885,13 @@ def format_suite_durations_table(suite_times, structure, file_out=None):
         "max": {},
         "slowest_branch": {},
     }
-    for platform in suite_times["start_time"]:
-        for matrix_id in suite_times["start_time"][platform]:
+    for platform in suite_times:
+        for matrix_id in suite_times[platform]:
+            if matrix_id == "start_time" or matrix_id == "end_time":
+                continue
             duration = (
-                suite_times["end_time"][platform][matrix_id]
-                - suite_times["start_time"][platform][matrix_id]
+                suite_times[platform][matrix_id]["end_time"]
+                - suite_times[platform][matrix_id]["start_time"]
             )
             if platform not in suite_durations["max"]:
                 suite_durations["max"][platform] = duration
