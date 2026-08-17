@@ -38,7 +38,13 @@ A basic execution looks like this:
 python summarize_test_results.py --dir example-artifacts
 ```
 
-or
+or, if you're using Python virtual environments, say `pythonVenv`
+
+``` shell
+pythonVenv/bin/python summarize_test_results.py --dir example-artifacts
+```
+
+you can get the report into a file by setting the `GITHUB_STEP_SUMMARY`:
 
 ``` shell
 GITHUB_STEP_SUMMARY=out.md python summarize_test_results.py --dir example-artifacts

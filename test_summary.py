@@ -31,41 +31,41 @@ class TestIsFailed(unittest.TestCase):
         self.assertEqual(self.summary["total_failed"], 1)
 
         self.assertEqual(
-            self.summary["by_code"]["total"],
-            {"/Users/myuser/repos/cloudnative-pg/tests/e2e/initdb_test.go:80": 1},
+            self.summary["by_code"]["/Users/myuser/repos/cloudnative-pg/tests/e2e/initdb_test.go:80"]["total"],
+            1,
             "unexpected summary",
         )
         self.assertEqual(
-            self.summary["by_code"]["tests"],
+            self.summary["by_code"]["/Users/myuser/repos/cloudnative-pg/tests/e2e/initdb_test.go:80"]["tests"],
             {
-                "/Users/myuser/repos/cloudnative-pg/tests/e2e/initdb_test.go:80": {
                     "InitDB settings - initdb custom post-init SQL scripts -- can find the"
                     " tables created by the post-init SQL queries": True
-                }
             },
             "unexpected summary",
         )
         self.assertEqual(
-            self.summary["by_matrix"], {"total": {"id1": 3}, "failed": {"id1": 1}}
+            self.summary["by_matrix"], {"id1": {"total": 3, "failed": 1}}
         )
         self.assertEqual(
-            self.summary["by_k8s"], {"total": {"1.22": 3}, "failed": {"1.22": 1}}
+            self.summary["by_k8s"], {"1.22": {"total": 3, "failed": 1}}
         )
         self.assertEqual(
-            self.summary["by_platform"], {"total": {"local": 3}, "failed": {"local": 1}}
+            self.summary["by_platform"], {"local": {"total": 3, "failed": 1}}
         )
         self.assertEqual(
             self.summary["by_postgres"],
-            {"total": {"PostgreSQL-11.1": 3}, "failed": {"PostgreSQL-11.1": 1}},
+            {"PostgreSQL-11.1": {"total": 3, "failed": 1}},
         )
         self.assertEqual(
             self.summary["suite_durations"],
             {
-                "end_time": {
-                    "local": {"id1": datetime.datetime(2021, 11, 29, 18, 31, 7)}
-                },
-                "start_time": {
-                    "local": {"id1": datetime.datetime(2021, 11, 29, 18, 28, 37)}
+                "local": {
+                    "end_time": datetime.datetime(2021, 11, 29, 18, 31, 7),
+                    "start_time": datetime.datetime(2021, 11, 29, 18, 28, 37),
+                    "id1": {
+                        "end_time": datetime.datetime(2021, 11, 29, 18, 31, 7),
+                        "start_time": datetime.datetime(2021, 11, 29, 18, 28, 37)
+                    }
                 },
             },
         )
