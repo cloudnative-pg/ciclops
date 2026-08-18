@@ -59,9 +59,8 @@ import json
 import math
 import os
 import pathlib
-from prettytable import MARKDOWN
 from prettytable import PrettyTable
-
+from prettytable import TableStyle
 
 def is_failed(e2e_test):
     """checks if the test failed. In ginkgo, the passing states are
@@ -678,7 +677,7 @@ def format_overview(summary, structure, file_out=None):
     print("## " + structure["title"] + "\n", file=file_out)
     table = PrettyTable(align="l")
     table.field_names = structure["header"]
-    table.set_style(MARKDOWN)
+    table.set_style(TableStyle.MARKDOWN)
 
     for row in structure["rows"]:
         table.add_row([summary[row[1]], summary[row[2]], row[0]])
@@ -700,7 +699,7 @@ def format_bucket_table(buckets, structure, file_out=None):
     print(f"\n<h2><a name={anchor}>{title}</a></h2>\n", file=file_out)
     table = PrettyTable(align="l")
     table.field_names = structure["header"]
-    table.set_style(MARKDOWN)
+    table.set_style(TableStyle.MARKDOWN)
 
     sorted_by_fail = dict(
         sorted(buckets.items(), key=lambda item: item[1]["failed"], reverse=True)
@@ -720,7 +719,7 @@ def format_by_test(summary, structure, file_out=None):
 
     table = PrettyTable(align="l")
     table.field_names = structure["header"]
-    table.set_style(MARKDOWN)
+    table.set_style(TableStyle.MARKDOWN)
 
     sorted_by_fail = dict(
         sorted(
@@ -758,7 +757,7 @@ def format_by_special_failure(summary, structure, file_out=None):
 
     table = PrettyTable(align="l")
     table.field_names = structure["header"]
-    table.set_style(MARKDOWN)
+    table.set_style(TableStyle.MARKDOWN)
 
     sorted_by_count = dict(
         sorted(
@@ -803,7 +802,7 @@ def format_by_code(summary, structure, file_out=None):
 
     table = PrettyTable(align="l")
     table.field_names = structure["header"]
-    table.set_style(MARKDOWN)
+    table.set_style(TableStyle.MARKDOWN)
 
     sorted_by_code = dict(
         sorted(
@@ -848,7 +847,7 @@ def format_durations_table(test_times, structure, file_out=None):
     print(f"\n<h2><a name={anchor}>{title}</a></h2>\n", file=file_out)
 
     table = PrettyTable(align="l", max_width=80)
-    table.set_style(MARKDOWN)
+    table.set_style(TableStyle.MARKDOWN)
     table.field_names = structure["header"]
 
     print(test_times)
@@ -874,7 +873,7 @@ def format_suite_durations_table(suite_times, structure, file_out=None):
     print(f"\n<h2><a name={anchor}>{title}</a></h2>\n", file=file_out)
 
     table = PrettyTable(align="l", max_width=80)
-    table.set_style(MARKDOWN)
+    table.set_style(TableStyle.MARKDOWN)
     table.field_names = structure["header"]
 
     # we want to display a table with one row per platform, giving us the

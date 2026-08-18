@@ -104,6 +104,12 @@ CIclops has the beginning of a unit test suite. You can run it with:
 python3 -m unittest
 ```
 
+or
+
+``` sh
+python test_summary.py
+```
+
 ## Testing within a calling GitHub workflow
 
 Even with unit tests and local tests, it's good to try Ciclops code out from a
