@@ -62,6 +62,7 @@ import pathlib
 from prettytable import PrettyTable
 from prettytable import TableStyle
 
+
 def is_failed(e2e_test):
     """checks if the test failed. In ginkgo, the passing states are
     well-defined but ginkgo 1 -> 2 added new failure kinds. So, check
@@ -222,10 +223,7 @@ def track_time_taken(test_results, test_times, suite_times):
         suite_times[platform] = {
             "start_time": start_time,
             "end_time": end_time,
-            matrix_id: {
-                "start_time": start_time,
-                "end_time": end_time
-            }
+            matrix_id: {"start_time": start_time, "end_time": end_time},
         }
     platform_bucket = suite_times[platform]
 
@@ -235,15 +233,13 @@ def track_time_taken(test_results, test_times, suite_times):
         platform_bucket["end_time"] = end_time
 
     if matrix_id not in platform_bucket:
-        platform_bucket[matrix_id] = {
-            "start_time": start_time,
-            "end_time": end_time
-        }
+        platform_bucket[matrix_id] = {"start_time": start_time, "end_time": end_time}
     else:
         if start_time < platform_bucket[matrix_id]["start_time"]:
             platform_bucket[matrix_id]["start_time"] = start_time
         if platform_bucket[matrix_id]["end_time"] < end_time:
             platform_bucket[matrix_id]["end_time"] = end_time
+
 
 def count_bucketed_by_test(test_results, by_test):
     """counts the successes, failures, failing versions of kubernetes,
@@ -254,7 +250,7 @@ def count_bucketed_by_test(test_results, by_test):
         "failed": 0,
         "k8s_versions_failed": {},
         "pg_versions_failed": {},
-        "platforms_failed": {}
+        "platforms_failed": {},
     }
     name = test_results["name"]
 
@@ -303,6 +299,7 @@ def count_bucketed_by_code(test_results, by_failing_code):
     error_bucket["tests"][name] = True
     error_bucket["errors"] = test_results["error"]
 
+
 def count_bucketed_by_special_failures(test_results, by_special_failures):
     """counts the successes, failures, failing versions of kubernetes,
     failing versions of postgres, bucketed by test name.
@@ -345,10 +342,7 @@ def count_bucketized_stats(test_results, buckets, field_id):
     """bucketizes test results according to the field_id.
     For each bucket, it counts the total tests run and the failed tests.
     """
-    newEntry = {
-        "total": 0,
-        "failed": 0
-    }
+    newEntry = {"total": 0, "failed": 0}
     bucket_id = test_results[field_id]
     if bucket_id not in buckets:
         buckets[bucket_id] = newEntry
