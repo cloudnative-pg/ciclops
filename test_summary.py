@@ -104,6 +104,28 @@ class TestIsFailed(unittest.TestCase):
             self.assertEqual(has_alerts, False)
             self.assertEqual(out, "")
 
+    def test_compute_overview(self):
+        """In this test we look at the stats of the big "example-artifacts" folder,
+        so that we can get realistic results
+        """
+        self.maxDiff = None
+        big_summary = summarize_test_results.compute_test_summary("example-artifacts")
+        overview = summarize_test_results.compile_overview(big_summary)
+        self.assertEqual(overview, {
+            'total_failed': 15,
+            'total_run': 18,
+            'k8s_failed': 7,
+            'k8s_run': 7,
+            'matrix_failed': 14,
+            'matrix_run': 15,
+            'platform_failed': 2,
+            'platform_run': 2,
+            'postgres_failed': 8,
+            'postgres_run': 9,
+            'total_special_fails': 7,
+            'unique_failed': 4,
+            'unique_run': 7
+        })
 
 if __name__ == "__main__":
     unittest.main()
