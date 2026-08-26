@@ -62,9 +62,11 @@ class TestIsFailed(unittest.TestCase):
                 "local": {
                     "end_time": datetime.datetime(2021, 11, 29, 18, 31, 7),
                     "start_time": datetime.datetime(2021, 11, 29, 18, 28, 37),
-                    "id1": {
-                        "end_time": datetime.datetime(2021, 11, 29, 18, 31, 7),
-                        "start_time": datetime.datetime(2021, 11, 29, 18, 28, 37),
+                    "matrices": {
+                        "id1": {
+                            "end_time": datetime.datetime(2021, 11, 29, 18, 31, 7),
+                            "start_time": datetime.datetime(2021, 11, 29, 18, 28, 37),
+                        },
                     },
                 },
             },
