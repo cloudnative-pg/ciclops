@@ -245,17 +245,16 @@ def count_bucketed_by_test(test_results, by_test):
     """counts the successes, failures, failing versions of kubernetes,
     failing versions of postgres, bucketed by test name.
     """
-    newEntry = {
-        "total": 0,
-        "failed": 0,
-        "k8s_versions_failed": {},
-        "pg_versions_failed": {},
-        "platforms_failed": {},
-    }
     name = test_results["name"]
 
     if name not in by_test:
-        by_test[name] = newEntry
+        by_test[name] = {
+            "total": 0,
+            "failed": 0,
+            "k8s_versions_failed": {},
+            "pg_versions_failed": {},
+            "platforms_failed": {},
+        }
     test_bucket = by_test[name]
 
     test_bucket["total"] = 1 + test_bucket["total"]
@@ -280,11 +279,6 @@ def count_bucketed_by_code(test_results, by_failing_code):
     if not is_normal_failure(test_results):
         return
 
-    newEntry = {
-        "total": 0,
-        "tests": {},
-        "errors": {},
-    }
     name = test_results["name"]
 
     errfile = test_results["error_file"]
@@ -292,12 +286,18 @@ def count_bucketed_by_code(test_results, by_failing_code):
     err_desc = f"{errfile}:{errline}"
 
     if err_desc not in by_failing_code:
-        by_failing_code[err_desc] = newEntry
+        by_failing_code[err_desc] = {
+            "total": 0,
+            "tests": {},
+            # we keep only one "errors" because the stack trace will
+            # be essentially unchanged for other iterations of this
+            # error
+            "errors": test_results["error"],
+        }
 
     error_bucket = by_failing_code[err_desc]
     error_bucket["total"] = 1 + error_bucket["total"]
     error_bucket["tests"][name] = True
-    error_bucket["errors"] = test_results["error"]
 
 
 def count_bucketed_by_special_failures(test_results, by_special_failures):
@@ -307,14 +307,6 @@ def count_bucketed_by_special_failures(test_results, by_special_failures):
 
     if not is_failed(test_results) or is_normal_failure(test_results):
         return
-
-    newEntry = {
-        "total": 0,
-        "tests_failed": {},
-        "k8s_versions_failed": {},
-        "pg_versions_failed": {},
-        "platforms_failed": {},
-    }
 
     failure = ""
     if is_external_failure(test_results):
@@ -328,7 +320,13 @@ def count_bucketed_by_special_failures(test_results, by_special_failures):
     platform = test_results["platform"]
 
     if failure not in by_special_failures:
-        by_special_failures[failure] = newEntry
+        by_special_failures[failure] = {
+            "total": 0,
+            "tests_failed": {},
+            "k8s_versions_failed": {},
+            "pg_versions_failed": {},
+            "platforms_failed": {},
+        }
     failure_bucket = by_special_failures[failure]
 
     failure_bucket["total"] += 1
@@ -342,10 +340,9 @@ def count_bucketized_stats(test_results, buckets, field_id):
     """bucketizes test results according to the field_id.
     For each bucket, it counts the total tests run and the failed tests.
     """
-    newEntry = {"total": 0, "failed": 0}
     bucket_id = test_results[field_id]
     if bucket_id not in buckets:
-        buckets[bucket_id] = newEntry
+        buckets[bucket_id] = {"total": 0, "failed": 0}
 
     bucket = buckets[bucket_id]
     bucket["total"] = 1 + bucket["total"]

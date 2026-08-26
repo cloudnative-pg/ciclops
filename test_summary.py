@@ -31,24 +31,24 @@ class TestIsFailed(unittest.TestCase):
         self.assertEqual(self.summary["total_failed"], 1)
 
         self.assertEqual(
-            self.summary["by_code"]["/Users/myuser/repos/cloudnative-pg/tests/e2e/initdb_test.go:80"]["total"],
+            self.summary["by_code"][
+                "/Users/myuser/repos/cloudnative-pg/tests/e2e/initdb_test.go:80"
+            ]["total"],
             1,
             "unexpected summary",
         )
         self.assertEqual(
-            self.summary["by_code"]["/Users/myuser/repos/cloudnative-pg/tests/e2e/initdb_test.go:80"]["tests"],
+            self.summary["by_code"][
+                "/Users/myuser/repos/cloudnative-pg/tests/e2e/initdb_test.go:80"
+            ]["tests"],
             {
-                    "InitDB settings - initdb custom post-init SQL scripts -- can find the"
-                    " tables created by the post-init SQL queries": True
+                "InitDB settings - initdb custom post-init SQL scripts -- can find the"
+                " tables created by the post-init SQL queries": True
             },
             "unexpected summary",
         )
-        self.assertEqual(
-            self.summary["by_matrix"], {"id1": {"total": 3, "failed": 1}}
-        )
-        self.assertEqual(
-            self.summary["by_k8s"], {"1.22": {"total": 3, "failed": 1}}
-        )
+        self.assertEqual(self.summary["by_matrix"], {"id1": {"total": 3, "failed": 1}})
+        self.assertEqual(self.summary["by_k8s"], {"1.22": {"total": 3, "failed": 1}})
         self.assertEqual(
             self.summary["by_platform"], {"local": {"total": 3, "failed": 1}}
         )
@@ -64,8 +64,8 @@ class TestIsFailed(unittest.TestCase):
                     "start_time": datetime.datetime(2021, 11, 29, 18, 28, 37),
                     "id1": {
                         "end_time": datetime.datetime(2021, 11, 29, 18, 31, 7),
-                        "start_time": datetime.datetime(2021, 11, 29, 18, 28, 37)
-                    }
+                        "start_time": datetime.datetime(2021, 11, 29, 18, 28, 37),
+                    },
                 },
             },
         )
@@ -111,21 +111,25 @@ class TestIsFailed(unittest.TestCase):
         self.maxDiff = None
         big_summary = summarize_test_results.compute_test_summary("example-artifacts")
         overview = summarize_test_results.compile_overview(big_summary)
-        self.assertEqual(overview, {
-            'total_failed': 15,
-            'total_run': 18,
-            'k8s_failed': 7,
-            'k8s_run': 7,
-            'matrix_failed': 14,
-            'matrix_run': 15,
-            'platform_failed': 2,
-            'platform_run': 2,
-            'postgres_failed': 8,
-            'postgres_run': 9,
-            'total_special_fails': 7,
-            'unique_failed': 4,
-            'unique_run': 7
-        })
+        self.assertEqual(
+            overview,
+            {
+                "total_failed": 15,
+                "total_run": 18,
+                "k8s_failed": 7,
+                "k8s_run": 7,
+                "matrix_failed": 14,
+                "matrix_run": 15,
+                "platform_failed": 2,
+                "platform_run": 2,
+                "postgres_failed": 8,
+                "postgres_run": 9,
+                "total_special_fails": 7,
+                "unique_failed": 4,
+                "unique_run": 7,
+            },
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
