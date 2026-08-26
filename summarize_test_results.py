@@ -223,7 +223,9 @@ def track_time_taken(test_results, test_times, suite_times):
         suite_times[platform] = {
             "start_time": start_time,
             "end_time": end_time,
-            matrix_id: {"start_time": start_time, "end_time": end_time},
+            "matrices": {
+                matrix_id: {"start_time": start_time, "end_time": end_time},
+            },
         }
     platform_bucket = suite_times[platform]
 
@@ -232,13 +234,16 @@ def track_time_taken(test_results, test_times, suite_times):
     if platform_bucket["end_time"] < end_time:
         platform_bucket["end_time"] = end_time
 
-    if matrix_id not in platform_bucket:
-        platform_bucket[matrix_id] = {"start_time": start_time, "end_time": end_time}
+    if matrix_id not in platform_bucket["matrices"]:
+        platform_bucket["matrices"][matrix_id] = {
+            "start_time": start_time,
+            "end_time": end_time,
+        }
     else:
-        if start_time < platform_bucket[matrix_id]["start_time"]:
-            platform_bucket[matrix_id]["start_time"] = start_time
-        if platform_bucket[matrix_id]["end_time"] < end_time:
-            platform_bucket[matrix_id]["end_time"] = end_time
+        if start_time < platform_bucket["matrices"][matrix_id]["start_time"]:
+            platform_bucket["matrices"][matrix_id]["start_time"] = start_time
+        if platform_bucket["matrices"][matrix_id]["end_time"] < end_time:
+            platform_bucket["matrices"][matrix_id]["end_time"] = end_time
 
 
 def count_bucketed_by_test(test_results, by_test):
@@ -887,12 +892,10 @@ def format_suite_durations_table(suite_times, structure, file_out=None):
         "slowest_branch": {},
     }
     for platform in suite_times:
-        for matrix_id in suite_times[platform]:
-            if matrix_id == "start_time" or matrix_id == "end_time":
-                continue
+        for matrix_id in suite_times[platform]["matrices"]:
             duration = (
-                suite_times[platform][matrix_id]["end_time"]
-                - suite_times[platform][matrix_id]["start_time"]
+                suite_times[platform]["matrices"][matrix_id]["end_time"]
+                - suite_times[platform]["matrices"][matrix_id]["start_time"]
             )
             if platform not in suite_durations["max"]:
                 suite_durations["max"][platform] = duration
