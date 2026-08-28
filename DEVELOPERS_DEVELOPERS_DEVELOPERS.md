@@ -23,13 +23,28 @@ The procedure for cutting a release:
 ## Developing and testing
 
 You can test directly with the Python code on the `example-artifacts` directory,
-where you can see some JSON artifacts in the expected format. For example:
+where you can see some JSON artifacts in the expected format.
+
+Before running the python scripts, you may need to install the requirements
+(just `prettytable` currently).
+
+``` shell
+pip install --no-cache-dir -r requirements.txt
+```
+
+A basic execution looks like this:
 
 ``` shell
 python summarize_test_results.py --dir example-artifacts
 ```
 
-or
+or, if you're using Python virtual environments, say `pythonVenv`
+
+``` shell
+pythonVenv/bin/python summarize_test_results.py --dir example-artifacts
+```
+
+you can get the report into a file by setting the `GITHUB_STEP_SUMMARY`:
 
 ``` shell
 GITHUB_STEP_SUMMARY=out.md python summarize_test_results.py --dir example-artifacts
@@ -87,6 +102,12 @@ CIclops has the beginning of a unit test suite. You can run it with:
 
 ``` sh
 python3 -m unittest
+```
+
+or
+
+``` sh
+python test_summary.py
 ```
 
 ## Testing within a calling GitHub workflow
